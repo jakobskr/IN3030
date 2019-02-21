@@ -7,6 +7,7 @@ public class Oblig2 {
 	double[][] a;
 	double[][] b;
 	double[][] out;
+	double[][] correct;
 	double[][] a_transposed;
 	double[][] b_transposed;
 	int threads;
@@ -24,37 +25,39 @@ public class Oblig2 {
 		Long t;
 		Double[][] time = new Double[6][7];
 		for (int i = 0;i < 7 ;i ++ ) {
-			
+			System.out.println("------ started loop " + i +" --------");
 			//stantad seq
 			t = System.nanoTime();
 			ma.multiply_seq();
 			time[0][i] = (System.nanoTime()-t)/1000000.0;
-
+ 
 			//seq a transposed
 			t = System.nanoTime();
-			//ma.multiply_seq_transA();
+			ma.multiply_seq_transA();
 			time[1][i] = (System.nanoTime()-t)/1000000.0;
 			
 			//seq b transposed
 			t = System.nanoTime();
-			//ma.multiply_seq_transB();
+			ma.multiply_seq_transB();
 			time[2][i] = (System.nanoTime()-t)/1000000.0;
 			
 			//para standard
 			t = System.nanoTime();
-			ma.multiply_par();
+			ma.multiply_par(0);
 			time[3][i] = (System.nanoTime()-t)/1000000.0;
 			
 			t = System.nanoTime();
-			//task2();
+			ma.multiply_par(1);
 			time[4][i] = (System.nanoTime()-t)/1000000.0;
 			
 			t = System.nanoTime();
-			//task2();
+			ma.multiply_par(2);
 			time[5][i] = (System.nanoTime()-t)/1000000.0;
+			System.out.println("------ finished loop " + i +" -------");
+
 		}
 
-		for (int i = 0; i < 4; i++) {
+		for (int i = 0; i < 6; i++) {
 			Arrays.sort(time[i]);
 			System.out.println("i: " + i + " time: " + time[i][4]);
 		}
@@ -66,13 +69,12 @@ public class Oblig2 {
 		this.n = n;
 		a = Oblig2Precode.generateMatrixA(seed, n);
 		b = Oblig2Precode.generateMatrixB(seed, n);
-		fillmeupdaddy(a);
-		fillmeupdaddy(b);
+		//fillmeupdaddy(a);
+		//fillmeupdaddy(b);
 
 		out = new double[n][n];
 		printMatrix(a);
 		printMatrix(b);
-		transpose(a);
 	}
 
 	public void printMatrix(double[][] tbp) {
@@ -94,7 +96,7 @@ public class Oblig2 {
 				}
 			}
 		}
-		//printMatrix(out);
+		printMatrix(out);
 	}
 
 	public void multiply_seq_transB() {
@@ -107,7 +109,6 @@ public class Oblig2 {
 				}
 			}
 		}
-		System.out.println("this is the result of the transposed :)");
 		printMatrix(out);
 	}
 
@@ -117,11 +118,10 @@ public class Oblig2 {
 		for (int i = 0; i < n ; i++) {
 			for (int j = 0; j < n ; j++) {
 				for (int k = 0; k < n ;k++ ) {
-					out[i][j] += a[k][i] * newA[k][j];
+					out[i][j] += newA[k][i] * b[k][j];
 				}
 			}
 		}
-		System.out.println("this is the result of the transposed :)");
 		printMatrix(out);
 	}
 
@@ -141,17 +141,26 @@ public class Oblig2 {
 				out[i][j] = in[j][i];
 			}
 		}
-		printMatrix(out); 
+		//System.out.println("this is the result of the transposed :)");
+		//printMatrix(out); 
 		return out;
 	}
 
-	public void multiply_par() {
+	public void multiply_par(int which) {
 		out = new double[n][n];
 		threads = 4;
 		cb = new CyclicBarrier(threads + 1);
 
+		if (which == 1) {
+			a_transposed = transpose(a);
+		}
+
+		else if (which == 2) {
+			b_transposed = transpose(b);
+		}
+
 		for (int i = 0; i < threads; i++) {
-			new Thread(new Worker(i)).start(); 
+			new Thread(new Worker(i, which)).start(); 
 		}
 		try {
 			cb.await();
@@ -163,11 +172,12 @@ public class Oblig2 {
 
 	public class Worker implements Runnable {
 		int index;
-		int start, end;
+		int start, end, which;
 
-		public Worker (int ind) {
+		public Worker (int ind, int which) {
 			index = ind;
 			start = index * (n / threads);
+			this.which = which;
 			if (index == threads - 1) {
 				end = start + n / threads + n % threads;
 			}
@@ -175,14 +185,58 @@ public class Oblig2 {
 			else {
 				end = start + n / threads;
 			}
-			System.out.println(ind +  " " + start + " " + end + " " + (end - start));
+			//System.out.println(ind +  " " + start + " " + end + " " + (end - start));
 		}
 
+
+
 		public void run() {
+			if (which == 0) {
+				para_multiply();
+			}
+
+			else if (which == 1) {
+				para_multiply_transA();
+			}
+
+			else if (which == 2) {
+				para_multiply_transB();
+			}
+		}
+
+		public void para_multiply() {
 			for (int i = start; i < end;i++ ) {
 				for (int j = 0; j < n ; j++) {
 					for (int k = 0;k < n ;k++ ) {
 						out[i][j] += a[i][k] * b[k][j];
+					}
+				}
+			}
+			try {
+				cb.await();
+			}
+			catch(Exception e) {return;}
+		}
+
+		public void para_multiply_transA() {
+			for (int i = start; i < end;i++ ) {
+				for (int j = 0; j < n ; j++) {
+					for (int k = 0;k < n ;k++ ) {
+						out[i][j] += a_transposed[k][i] * b[k][j];
+					}
+				}
+			}
+			try {
+				cb.await();
+			}
+			catch(Exception e) {return;}
+		}
+
+		public void para_multiply_transB() {
+			for (int i = start; i < end;i++ ) {
+				for (int j = 0; j < n ; j++) {
+					for (int k = 0;k < n ;k++ ) {
+						out[i][j] += a[i][k] * b_transposed[j][k];
 					}
 				}
 			}
