@@ -55,7 +55,7 @@ public class Oblig1 {
 		}
 		Arrays.sort(seq);
 		Arrays.sort(para);
-		System.out.printf("N: %d k: %d Seq: %f Para:%f S: %f\n", n, k, seq[3], para[3], seq[3]/para[4]);
+		System.out.printf("N: %d k: %d Seq: %f Para:%f S: %f\n", n, k, seq[3], para[3], seq[3]/para[3]);
 
 	}
 
