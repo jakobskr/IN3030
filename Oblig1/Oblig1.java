@@ -19,6 +19,7 @@ public class Oblig1 {
 			task.does(i,20);
 
 		}
+		
 		System.out.println(" ");
 
 		for (int i = 1000; i < 1000000000 ; i= i * 10) {
