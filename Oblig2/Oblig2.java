@@ -59,7 +59,7 @@ public class Oblig2 {
 
 		for (int i = 0; i < 6; i++) {
 			Arrays.sort(time[i]);
-			System.out.println("i: " + i + " time: " + time[i][4]);
+			System.out.println("i: " + i + " time: " + time[i][3]);
 		}
 
 
