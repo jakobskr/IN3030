@@ -69,8 +69,8 @@ public class Oblig2 {
 		this.n = n;
 		a = Oblig2Precode.generateMatrixA(seed, n);
 		b = Oblig2Precode.generateMatrixB(seed, n);
-		//fillmeupdaddy(a);
-		//fillmeupdaddy(b);
+		//fillMatrix(a);
+		//fillMatrix(b);
 
 		out = new double[n][n];
 		printMatrix(a);
@@ -88,15 +88,16 @@ public class Oblig2 {
 
 
 	public void multiply_seq() {
-		
+		correct = new double[n][n];
+
 		for (int i = 0;i < n; i++ ) {
 			for (int j = 0;j < n; j++) {
 				for (int k = 0; k < n ; k++) {
-					out[i][j] += a[i][k] * b[k][j];
+					correct[i][j] += a[i][k] * b[k][j];
 				}
 			}
 		}
-		printMatrix(out);
+		printMatrix(correct);
 	}
 
 	public void multiply_seq_transB() {
@@ -125,7 +126,7 @@ public class Oblig2 {
 		printMatrix(out);
 	}
 
-	public void fillmeupdaddy(double[][] in) {
+	public void fillMatrix(double[][] in) {
 		int k = 1;
 		for (int i = 0; i < n; i++) {
 			for (int j = 0; j < n; j++) {
@@ -166,7 +167,22 @@ public class Oblig2 {
 			cb.await();
 		}
 		catch(Exception e) {return;}
+		compare(out);
 		printMatrix(out);
+	}
+
+	public boolean compare(double[][] comp) {
+		int x = 0;
+		for (int i = 0;i < n ; i++) {
+			for (int j = 0; j < n; j++) {
+				if (comp[i][j] != correct[i][j]) {
+					x++;
+					System.out.println("Waaaaah woooooh " + x);
+
+				}
+			}
+		}
+		return true;
 	}
 
 
