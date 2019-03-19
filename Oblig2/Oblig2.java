@@ -4,6 +4,7 @@ import java.util.concurrent.*;
 
 public class Oblig2 {
 	int n = 0;
+	int seed;
 	double[][] a;
 	double[][] b;
 	double[][] out;
@@ -43,15 +44,15 @@ public class Oblig2 {
 			
 			//para standard
 			t = System.nanoTime();
-			ma.multiply_par(0);
+			ma.multiply_par(Oblig2Precode.Mode.PARA_NOT_TRANSPOSED);
 			time[3][i] = (System.nanoTime()-t)/1000000.0;
 			
 			t = System.nanoTime();
-			ma.multiply_par(1);
+			ma.multiply_par(Oblig2Precode.Mode.PARA_A_TRANSPOSED);
 			time[4][i] = (System.nanoTime()-t)/1000000.0;
 			
 			t = System.nanoTime();
-			ma.multiply_par(2);
+			ma.multiply_par(Oblig2Precode.Mode.PARA_B_TRANSPOSED);
 			time[5][i] = (System.nanoTime()-t)/1000000.0;
 			System.out.println("------ finished loop " + i +" -------");
 
@@ -67,6 +68,7 @@ public class Oblig2 {
 
 	public Oblig2(int n, int seed) {
 		this.n = n;
+		this.seed = seed;
 		a = Oblig2Precode.generateMatrixA(seed, n);
 		b = Oblig2Precode.generateMatrixB(seed, n);
 		//fillMatrix(a);
@@ -98,6 +100,7 @@ public class Oblig2 {
 			}
 		}
 		printMatrix(correct);
+		Oblig2Precode.saveResult(seed, Oblig2Precode.Mode.SEQ_NOT_TRANSPOSED, correct);
 	}
 
 	public void multiply_seq_transB() {
@@ -111,6 +114,8 @@ public class Oblig2 {
 			}
 		}
 		printMatrix(out);
+		Oblig2Precode.saveResult(seed, Oblig2Precode.Mode.SEQ_A_TRANSPOSED, out);
+
 	}
 
 	public void multiply_seq_transA() {
@@ -124,6 +129,8 @@ public class Oblig2 {
 			}
 		}
 		printMatrix(out);
+		Oblig2Precode.saveResult(seed, Oblig2Precode.Mode.SEQ_B_TRANSPOSED, out);
+
 	}
 
 	public void fillMatrix(double[][] in) {
@@ -147,28 +154,29 @@ public class Oblig2 {
 		return out;
 	}
 
-	public void multiply_par(int which) {
+	public void multiply_par(Oblig2Precode.Mode mode) {
 		out = new double[n][n];
 		threads = 4;
 		cb = new CyclicBarrier(threads + 1);
 
-		if (which == 1) {
+		if (mode == Oblig2Precode.Mode.PARA_A_TRANSPOSED) {
 			a_transposed = transpose(a);
 		}
 
-		else if (which == 2) {
+		else if (mode == Oblig2Precode.Mode.PARA_B_TRANSPOSED) {
 			b_transposed = transpose(b);
 		}
 
 		for (int i = 0; i < threads; i++) {
-			new Thread(new Worker(i, which)).start(); 
+			new Thread(new Worker(i, mode)).start(); 
 		}
 		try {
 			cb.await();
 		}
 		catch(Exception e) {return;}
-		compare(out);
-		printMatrix(out);
+		//compare(out);
+		Oblig2Precode.saveResult(seed, mode, out);
+		//printMatrix(out);
 	}
 
 	public boolean compare(double[][] comp) {
@@ -188,12 +196,13 @@ public class Oblig2 {
 
 	public class Worker implements Runnable {
 		int index;
-		int start, end, which;
+		int start, end;
+		Oblig2Precode.Mode mode;
 
-		public Worker (int ind, int which) {
+		public Worker (int ind, Oblig2Precode.Mode which) {
 			index = ind;
 			start = index * (n / threads);
-			this.which = which;
+			this.mode = which;
 			if (index == threads - 1) {
 				end = start + n / threads + n % threads;
 			}
@@ -207,15 +216,15 @@ public class Oblig2 {
 
 
 		public void run() {
-			if (which == 0) {
+			if (mode == Oblig2Precode.Mode.PARA_NOT_TRANSPOSED) {
 				para_multiply();
 			}
 
-			else if (which == 1) {
+			else if (mode == Oblig2Precode.Mode.PARA_A_TRANSPOSED) {
 				para_multiply_transA();
 			}
 
-			else if (which == 2) {
+			else if (mode == Oblig2Precode.Mode.PARA_B_TRANSPOSED) {
 				para_multiply_transB();
 			}
 		}
