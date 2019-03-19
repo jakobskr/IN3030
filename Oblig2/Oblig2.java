@@ -7,10 +7,16 @@ public class Oblig2 {
 	int seed;
 	double[][] a;
 	double[][] b;
-	double[][] out;
-	double[][] correct;
 	double[][] a_transposed;
 	double[][] b_transposed;
+	double[][] seq;
+	double[][] seqA;
+	double[][] seqB;
+	double[][] para;
+	double[][] paraA;
+	double[][] paraB;
+
+	
 	int threads;
 	CyclicBarrier cb;
 
@@ -63,6 +69,7 @@ public class Oblig2 {
 			System.out.println("i: " + i + " time: " + time[i][3]);
 		}
 
+		ma.writeMatrix();
 
 	}
 
@@ -74,7 +81,12 @@ public class Oblig2 {
 		//fillMatrix(a);
 		//fillMatrix(b);
 
-		out = new double[n][n];
+		seq = new double[n][n];
+		seqA = new double[n][n];
+		seqB = new double[n][n];
+		para = new double[n][n];
+		para = new double[n][n];
+		paraB = new double[n][n];
 		printMatrix(a);
 		printMatrix(b);
 	}
@@ -87,50 +99,51 @@ public class Oblig2 {
 		}
 	}
 
+	public void writeMatrix() {
+		Oblig2Precode.saveResult(seed, Oblig2Precode.Mode.SEQ_NOT_TRANSPOSED, seq);
+		Oblig2Precode.saveResult(seed, Oblig2Precode.Mode.SEQ_A_TRANSPOSED, seqA);
+		Oblig2Precode.saveResult(seed, Oblig2Precode.Mode.SEQ_B_TRANSPOSED, seqB);
+		Oblig2Precode.saveResult(seed, Oblig2Precode.Mode.PARA_NOT_TRANSPOSED, para);
+		Oblig2Precode.saveResult(seed, Oblig2Precode.Mode.PARA_A_TRANSPOSED, paraA);
+		Oblig2Precode.saveResult(seed, Oblig2Precode.Mode.PARA_B_TRANSPOSED, paraB);
+	}
 
 
 	public void multiply_seq() {
-		correct = new double[n][n];
+		seq = new double[n][n];
 
 		for (int i = 0;i < n; i++ ) {
 			for (int j = 0;j < n; j++) {
 				for (int k = 0; k < n ; k++) {
-					correct[i][j] += a[i][k] * b[k][j];
+					seq[i][j] += a[i][k] * b[k][j];
 				}
 			}
 		}
-		printMatrix(correct);
-		Oblig2Precode.saveResult(seed, Oblig2Precode.Mode.SEQ_NOT_TRANSPOSED, correct);
 	}
 
 	public void multiply_seq_transB() {
 		double[][] newB = transpose(b);
-		double[][] out = new double[n][n];
+		seqB = new double[n][n];
 		for (int i = 0; i < n ; i++) {
 			for (int j = 0; j < n ; j++) {
 				for (int k = 0; k < n ;k++ ) {
-					out[i][j] += a[i][k] * newB[j][k];
+					seqB[i][j] += a[i][k] * newB[j][k];
 				}
 			}
 		}
-		printMatrix(out);
-		Oblig2Precode.saveResult(seed, Oblig2Precode.Mode.SEQ_A_TRANSPOSED, out);
-
 	}
 
 	public void multiply_seq_transA() {
 		double[][] newA = transpose(a);
-		double[][] out = new double[n][n];
+		seqA = new double[n][n];
 		for (int i = 0; i < n ; i++) {
 			for (int j = 0; j < n ; j++) {
 				for (int k = 0; k < n ;k++ ) {
-					out[i][j] += newA[k][i] * b[k][j];
+					seqA[i][j] += newA[k][i] * b[k][j];
 				}
 			}
 		}
-		printMatrix(out);
-		Oblig2Precode.saveResult(seed, Oblig2Precode.Mode.SEQ_B_TRANSPOSED, out);
-
+		printMatrix(seqA);
 	}
 
 	public void fillMatrix(double[][] in) {
@@ -143,28 +156,33 @@ public class Oblig2 {
 	}
 
 	public double[][] transpose(double[][] in) {
-		double[][] out = new double[n][n];
+		double[][] ret = new double[n][n];
 		for (int i = 0;i < n ;i++ ) {
 			for (int j = 0; j < n; j++ ) {
-				out[i][j] = in[j][i];
+				ret[i][j] = in[j][i];
 			}
 		}
 		//System.out.println("this is the result of the transposed :)");
 		//printMatrix(out); 
-		return out;
+		return ret;
 	}
 
 	public void multiply_par(Oblig2Precode.Mode mode) {
-		out = new double[n][n];
 		threads = 4;
 		cb = new CyclicBarrier(threads + 1);
 
 		if (mode == Oblig2Precode.Mode.PARA_A_TRANSPOSED) {
+			paraA = new double[n][n];
 			a_transposed = transpose(a);
 		}
 
 		else if (mode == Oblig2Precode.Mode.PARA_B_TRANSPOSED) {
+			paraB = new double[n][n];
 			b_transposed = transpose(b);
+		}
+
+		else {
+			para = new double[n][n];
 		}
 
 		for (int i = 0; i < threads; i++) {
@@ -175,23 +193,21 @@ public class Oblig2 {
 		}
 		catch(Exception e) {return;}
 		//compare(out);
-		Oblig2Precode.saveResult(seed, mode, out);
 		//printMatrix(out);
 	}
 
-	public boolean compare(double[][] comp) {
+	public boolean compare(double[][] comp, double[][] correct) {
 		int x = 0;
 		for (int i = 0;i < n ; i++) {
 			for (int j = 0; j < n; j++) {
 				if (comp[i][j] != correct[i][j]) {
 					x++;
 					System.out.println("Waaaaah woooooh " + x);
-
 				}
 			}
 		}
 		return true;
-	}
+	} 
 
 
 	public class Worker implements Runnable {
@@ -213,8 +229,6 @@ public class Oblig2 {
 			//System.out.println(ind +  " " + start + " " + end + " " + (end - start));
 		}
 
-
-
 		public void run() {
 			if (mode == Oblig2Precode.Mode.PARA_NOT_TRANSPOSED) {
 				para_multiply();
@@ -233,7 +247,7 @@ public class Oblig2 {
 			for (int i = start; i < end;i++ ) {
 				for (int j = 0; j < n ; j++) {
 					for (int k = 0;k < n ;k++ ) {
-						out[i][j] += a[i][k] * b[k][j];
+						para[i][j] += a[i][k] * b[k][j];
 					}
 				}
 			}
@@ -247,7 +261,7 @@ public class Oblig2 {
 			for (int i = start; i < end;i++ ) {
 				for (int j = 0; j < n ; j++) {
 					for (int k = 0;k < n ;k++ ) {
-						out[i][j] += a_transposed[k][i] * b[k][j];
+						paraA[i][j] += a_transposed[k][i] * b[k][j];
 					}
 				}
 			}
@@ -261,7 +275,7 @@ public class Oblig2 {
 			for (int i = start; i < end;i++ ) {
 				for (int j = 0; j < n ; j++) {
 					for (int k = 0;k < n ;k++ ) {
-						out[i][j] += a[i][k] * b_transposed[j][k];
+						paraB[i][j] += a[i][k] * b_transposed[j][k];
 					}
 				}
 			}
