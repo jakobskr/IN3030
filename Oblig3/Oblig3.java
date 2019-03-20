@@ -21,28 +21,34 @@ public class Oblig3 {
 			System.exit(0);			
 		}		
 		Long time1, time2;
-		Double t1, t2;
+		Double t1 = 5.0;
+		Double t2 = 5.0;
 		Oblig3 ob3 = new Oblig3(Integer.parseInt(args[0]));
 		int n = ob3.n;
 		SequentialSieve seqSieve = new SequentialSieve(n);
+		int[] seqPrims = {1};
+		int[] paraPrims = {1};
 
+		for (int i = 0; i < 7; i++) {
+			time2 = System.nanoTime();
+			paraPrims = ob3.paraEra();
+			t2 = (System.nanoTime()-time2)/1000000.0;
+		
+			time1 = System.nanoTime();
+			seqPrims = seqSieve.findPrimes();
+			t1 = (System.nanoTime()-time1)/1000000.0;
 
-		time2 = System.nanoTime();
-		int[] paraPrims = ob3.paraEra();
-		t2 = (System.nanoTime()-time2)/1000000.0;
-
-
-		time1 = System.nanoTime();
-		int[] seqPrims = seqSieve.findPrimes();
-		t1 = (System.nanoTime()-time1)/1000000.0;
+			System.out.printf("seq time: %f para time: %f \n",t1,t2);
+		}
+		
 		
 		//ob3.seqFactor(seqPrims);
 		//ob3.writeFactors();
 		//ob3.paraFactor(seqPrims);
 
-		System.out.println(Arrays.toString(seqPrims));
-		System.out.println(Arrays.toString(paraPrims));
-
+		//System.out.println(Arrays.toString(seqPrims));
+		//System.out.println(Arrays.toString(paraPrims));
+		System.out.println("seqLen " + seqPrims.length + " paraLen " + paraPrims.length);
 		System.out.println("We found the same primes: " +  ob3.comparePrimes(seqPrims, paraPrims));
 		System.out.printf("seq time: %f para time: %f \n",t1,t2);
 
@@ -92,12 +98,20 @@ public class Oblig3 {
 		return true;
 	}
 
+
+
+	/**
+	 *  #####  #######
+	 *  #   #  #
+	 * 	####   #####
+	 * 	#	   #
+	 * 	#      ####### 
+	 */
 	public int[] paraEra() {
-		threads = 8;
+		threads = 4;
 		int cells = n / 16 + 1;
 		byteArray = new byte[cells];
 		ArrayList<Integer> primes = new ArrayList<Integer>();
-		//finding first primes
 		int currentPrime = 3;
 		int squareRootN = (int) Math.sqrt(n);
 
@@ -108,10 +122,11 @@ public class Oblig3 {
 		}
 		
 		cb = new CyclicBarrier(threads + 1);
-		int segLenght = byteArray.length / threads;
+		int segLenght = (byteArray.length - squareRootN / 16) / threads;
 		for (int i = 0; i < threads; i++) {
 			new Thread(new EraThread(i, segLenght, primes)).start();
 		}
+
 
 		try {
 			cb.await();
@@ -119,25 +134,26 @@ public class Oblig3 {
 
 		catch(Exception e) {System.exit(-1);}
 
-		int counter = 0;
-		for (int i = 3; i < n; i += 2) {
-			if(isPrime(i))counter++;
+		int counter = 1;
+		 for (int i = 3; i < n; i += 2) {
+			if(isPrime(i)) {
+				counter++;
+			}
 		}
-
-
-		int ret[] = new int[counter + 1];
+ 
+		int ret[] = new int[counter];
         ret[0] = 2;
 
         currentPrime = 3;
         for (int i = 1; i < counter; i++) {
             ret[i] = currentPrime;
             currentPrime = findNextPrime(currentPrime+2,n);
-        }
+		} 
 		return ret;
 	}
 
 	void traverse(int p, int high) {
-        for (int i = p*p; i < high; i += p * 2) {
+        for (int i = p*p; i <= high; i += p * 2) {
             flip(i);
         }
 	}
@@ -150,18 +166,19 @@ public class Oblig3 {
         int byteCell = i / 16;
         int bit = (i / 2) % 8;
 
-        byteArray[byteCell] |= (1 << bit);
+		byteArray[byteCell] |= (1 << bit);
     }
 
 
 	int findNextPrime(int startAt, int high) {
-        for (int i = startAt; i < high; i += 2) {
+        for (int i = startAt; i <= high; i += 2) {
             if(isPrime(i)) {
                 return i;
             }
         }
         return 0;
-    }
+	}
+	
 
 	boolean isPrime(int i) {
         if((i % 2) == 0) {
@@ -184,8 +201,18 @@ public class Oblig3 {
 			this.id = id;
 			this.segLenght = segLenght;
 			this.primes = primes;
-			this.low = segLenght * id;
-			intLow = 16 * low + 1;
+
+			if(id == 0) {
+				this.intLow = (int) Math.sqrt(n) + 1;
+				if(intLow % 2 == 0) intLow++; 
+				low = 0;
+			}
+
+			else {
+				this.low = segLenght * id;
+				intLow = 16 * low + 1;	
+
+			}
 
 			if(id == threads -1) {
 				high = byteArray.length;
@@ -202,15 +229,20 @@ public class Oblig3 {
 		
 
 		public void run() {
-			//System.out.printf("id %d low %d high %d lowInt %d highInt %d\n", id, low, high, intLow, intHigh);
+			//System.out.printf("id %d low %d high %d lowInt %d highInt %d segLenght %d\n", id, low, high, intLow, intHigh, segLenght);
+
+
 
 			for (Integer p : primes) {
 				par_traverse(p, intLow, intHigh);
 			}
 
+
 			try {
 				cb.await();
 			}
+
+
 			catch(Exception e) {return;}
 		}
 
@@ -220,20 +252,25 @@ public class Oblig3 {
 		//low is the lowest int value represented in the byte array that the thread holds, same for high
 		//
 		public void par_traverse(int p, int low, int high) {
-			if(p * p > high)return;			
-			int t;
-			if((low%p == 0) && (low != p) && (low%2 != 0)) t = low; 
+			if(p * p > high)return;		
+			
+			
+			int t = 0;
+			if(low % p == 0) t = low; 
 			else {	
-			t = (low + p) / p * p;
+			t = low + (p - (low % p));
 			if (t % 2 == 0) t += p; 
 			}
+
 			int byteCell;
-       		int bit;
+			   int bit;
+			
 			for (int i = t; i <= high; i+= p * 2) {
 				byteCell = i / 16;
 				bit = (i / 2) % 8;
 				byteArray[byteCell] |= (1 << bit);
 			}
+			
 		}
 	}
 
