@@ -5,15 +5,23 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.concurrent.*;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
 
 
 public class Oblig3 {
+	Lock laas =	new ReentrantLock();
+	Lock utlaas = new ReentrantLock();
 	public int n = 100;
 	public Oblig3Precode writer;
-	public int threads = 1;
-	TreeMap<Long, LinkedList<Long>> paraFactors = new TreeMap<Long, LinkedList<Long>>(); 
+	public int threads = 4;
+	TreeMap<Long, ArrayList<Long>> seqFactors = new TreeMap<Long, ArrayList<Long>>(); 
+	TreeMap<Long, ArrayList<Long>> paraFactors = new TreeMap<Long, ArrayList<Long>>(); 
 	CyclicBarrier cb;
 	byte[] byteArray;
+
+	Long[] base = new Long[100];
 
 	public static void main(String[] args) {
 		if (args.length < 1) {
@@ -29,7 +37,7 @@ public class Oblig3 {
 		int[] seqPrims = {1};
 		int[] paraPrims = {1};
 
-		for (int i = 0; i < 7; i++) {
+		for (int i = 0; i < 1; i++) {
 			time2 = System.nanoTime();
 			paraPrims = ob3.paraEra();
 			t2 = (System.nanoTime()-time2)/1000000.0;
@@ -42,15 +50,30 @@ public class Oblig3 {
 		}
 		
 		
-		//ob3.seqFactor(seqPrims);
 		//ob3.writeFactors();
-		//ob3.paraFactor(seqPrims);
 
 		//System.out.println(Arrays.toString(seqPrims));
 		//System.out.println(Arrays.toString(paraPrims));
 		System.out.println("seqLen " + seqPrims.length + " paraLen " + paraPrims.length);
 		System.out.println("We found the same primes: " +  ob3.comparePrimes(seqPrims, paraPrims));
 		System.out.printf("seq time: %f para time: %f \n",t1,t2);
+
+		double t3, t4;
+		Long time3 = System.nanoTime();
+		ob3.paraFactor(seqPrims);
+		t3 = (System.nanoTime()-time3)/1000000.0;
+
+		time3 = System.nanoTime();
+		ob3.seqFactor(seqPrims);
+		t4 = (System.nanoTime()-time3)/1000000.0;
+
+
+
+
+		//ob3.printFactors(ob3.paraFactors);
+		//ob3.printFactors(ob3.seqFactors);
+		System.out.println("Ya boi Yeese is in the housEE " + ob3.compareFactors());
+		System.out.println("paraTime " + t3 + " seqTime " + t4);
 
 	}
 
@@ -72,7 +95,7 @@ public class Oblig3 {
 			
 			while(modified != 1 && pc < primes.length) {
 				if (modified % primes[pc] == 0) {
-					writer.addFactor(org, primes[pc]);
+					add_seq_Factor(org, primes[pc]);
 					modified = modified / primes[pc];
 				}
 
@@ -83,10 +106,23 @@ public class Oblig3 {
 			}
 
 			if (modified != 1) {
-				writer.addFactor(i, modified);	
+				add_seq_Factor(org, modified);	
 			}	
 		}
 	}
+
+	public void add_seq_Factor(long base, long factor) {
+        
+        Long longObj = new Long(base);
+        
+        if(!seqFactors.containsKey(longObj))
+            seqFactors.put(longObj, new ArrayList<Long>());
+
+        //System.out.printf("Adding %d to %d\n",factor, base);
+        
+        seqFactors.get(longObj).add(factor);
+        
+    }
 
 	public boolean comparePrimes(int[] a , int[]b ) {
 		if(a.length != b.length) return false;
@@ -98,6 +134,69 @@ public class Oblig3 {
 		return true;
 	}
 
+
+	public void printFactors(TreeMap<Long, ArrayList<Long>> factors) {
+		for(Map.Entry<Long, ArrayList<Long>> entry : factors.entrySet()) {
+	   
+			// Starting a new line with the base
+			System.out.print(entry.getKey() + " : ");
+			
+			
+			// Sort the factors
+			Collections.sort(entry.getValue());
+			
+			// Then print the factors
+			String out = "";
+			for(Long l : entry.getValue())
+				out += l + "*";
+			
+			// Removing the trailing '*'
+			System.out.println(out.substring(0, out.length()-1));
+		
+		}
+	}
+
+
+	public boolean compareFactors() {
+		Long temp;
+		ArrayList<Long> seq, prim;
+
+		for (int i = n*n - 100; i < n * n; i++) {
+			temp = new Long(i);
+
+			seq = seqFactors.get(temp);
+			prim = paraFactors.get(temp);
+
+			if(seq == null) {
+				System.out.println("seq null");
+			}
+
+			if(prim == null) {
+				System.out.println("prim null " + i);
+			}
+
+
+			if(paraFactors.get(temp).size() != seqFactors.get(temp).size()) {
+				System.out.println("different factor size");
+				return false;
+			}
+
+
+			seq = seqFactors.get(temp);
+			prim = seqFactors.get(temp);
+			Collections.sort(prim);
+			Collections.sort(seq);
+			for (int j = 0; j < prim.size(); j++) {
+				if(seq.get(j) != prim.get(j)) {
+					System.out.println("Different factors for: " + i);
+					return false;
+				}
+			}
+		}
+
+
+		return true;
+	}
 
 
 	/**
@@ -123,8 +222,10 @@ public class Oblig3 {
 		
 		cb = new CyclicBarrier(threads + 1);
 		int segLenght = (byteArray.length - squareRootN / 16) / threads;
+		EraThread[] era = new EraThread[threads];
 		for (int i = 0; i < threads; i++) {
-			new Thread(new EraThread(i, segLenght, primes)).start();
+			era[i] = new EraThread(i, segLenght, primes);
+			new Thread(era[i]).start();
 		}
 
 
@@ -134,13 +235,20 @@ public class Oblig3 {
 
 		catch(Exception e) {System.exit(-1);}
 
-		int counter = 1;
-		 for (int i = 3; i < n; i += 2) {
+
+
+		int counter = 1 + primes.size();
+
+		for (int i = 0; i < threads; i++) {
+			counter += era[i].ps;
+		}
+
+	/* 	  for (int i = 3; i < n; i += 2) {
 			if(isPrime(i)) {
 				counter++;
 			}
-		}
- 
+		} */
+  
 		int ret[] = new int[counter];
         ret[0] = 2;
 
@@ -196,7 +304,7 @@ public class Oblig3 {
 	public class EraThread implements Runnable {
 		int id, low, high, segLenght, intLow, intHigh;
 		ArrayList<Integer> primes;
-
+		int ps = 0;
 		public EraThread(int id, int segLenght, ArrayList<Integer> primes) {
 			this.id = id;
 			this.segLenght = segLenght;
@@ -237,6 +345,9 @@ public class Oblig3 {
 				par_traverse(p, intLow, intHigh);
 			}
 
+			for (int i = intLow; i <= intHigh; i+= 2) {
+				if(isPrime(i))ps++;
+			}
 
 			try {
 				cb.await();
@@ -253,7 +364,6 @@ public class Oblig3 {
 		//
 		public void par_traverse(int p, int low, int high) {
 			if(p * p > high)return;		
-			
 			
 			int t = 0;
 			if(low % p == 0) t = low; 
@@ -274,10 +384,23 @@ public class Oblig3 {
 		}
 	}
 
+		/**
+	 *  #####  #######
+	 *  #   #  #
+	 * 	####   #####
+	 * 	#	   #
+	 * 	#      #
+	 */
 
 	public void paraFactor(int[] primes) {
 		threads = 4;
-
+		
+		for (int i = n * n - 100; i < n * n; i++) {
+			Long l = new Long(i);
+			ArrayList<Long> al = new ArrayList<Long>();
+			al.add(l);
+			paraFactors.put(l,al);
+		}
 
 		/* TODO
 		find first M primes, for M*M < N
@@ -293,32 +416,15 @@ public class Oblig3 {
 		try {
 			cb.await();
 		}
+		
 		catch(Exception e) {return;}
 
-		 for(Map.Entry<Long, LinkedList<Long>> entry : paraFactors.entrySet()) {
-       
-                // Starting a new line with the base
-                System.out.print(entry.getKey() + " : ");
-                
-                
-                // Sort the factors
-                Collections.sort(entry.getValue());
-                
-                // Then print the factors
-                String out = "";
-                for(Long l : entry.getValue())
-                    out += l + "*";
-                
-                // Removing the trailing '*'
-                System.out.println(out.substring(0, out.length()-1));
-                
-                
-            }
+		//remove leading 1's if there are any :)
+		for(Map.Entry<Long, ArrayList<Long>> entry : paraFactors.entrySet()) {
+			if(entry.getValue().get(0) == 1) entry.getValue().remove(0);
+		}
 
 	}
-
-
-
 
 	public class Worker implements Runnable{
 		int id;
@@ -329,35 +435,45 @@ public class Oblig3 {
 			this.primes = primes;  
 		}
 
-		public synchronized void addFactor(long base, long factor) {
-        
-        	Long longObj = new Long(base);
-        
-       		if(!paraFactors.containsKey(longObj))
-            	paraFactors.put(longObj, new LinkedList<Long>());
+		public void addFactor(long base, long factor) {
+			laas.lock();
+			
+			try {
 
-        		//System.out.printf("Adding %d to %d\n",factor, base);
-        
-        		paraFactors.get(longObj).add(factor);
+				Long longObj = new Long(base);
+ /*        
+       			if(!paraFactors.containsKey(longObj)) {
+					paraFactors.put(longObj, new ArrayList<Long>());
+					paraFactors.get(longObj).add((long) base / factor);
+					paraFactors.get(longObj).add(factor);
+				   } */
+
+				paraFactors.get(longObj).add(factor);
+				paraFactors.get(longObj).set(0, (long) paraFactors.get(longObj).get(0) / factor);
+				
+				
+			}
+ 
+			finally {laas.unlock();}
+        	
         	
     	}
 
 		public void run() {
-			String print = id + ": ";
+			/* String print = id + ": ";
 			for (int i = id; i < primes.length ; i = i + threads) {
 				print += primes[i] + " ";
 			}
 			System.out.println(print);
+ */
 
-
-			for (int i = n * n - 10; i < n * n; i++) {
+			for (int i = n * n - 100; i < n * n; i++) {
 				long orig = i;
 				long modified = i;
 				int pc = id;
 				while(modified != 1 && pc < primes.length) {
 
 					if (modified % primes[pc] == 0) {
-						System.out.println(id + " " + orig + " " + primes[pc]);
 						addFactor(orig, primes[pc]);
 						modified = modified / primes[pc];
 					}
@@ -367,6 +483,7 @@ public class Oblig3 {
 					}
 
 				}
+
 			}
 
 			try {
