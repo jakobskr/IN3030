@@ -1,3 +1,4 @@
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.TreeMap;
 import java.util.Collections;
@@ -12,22 +13,39 @@ public class Oblig3 {
 	public int threads = 1;
 	TreeMap<Long, LinkedList<Long>> paraFactors = new TreeMap<Long, LinkedList<Long>>(); 
 	CyclicBarrier cb;
-
+	byte[] byteArray;
 
 	public static void main(String[] args) {
 		if (args.length < 1) {
 			System.out.println("Correct usage: java Oblig3 [N] {Threads}");
 			System.exit(0);			
 		}		
-
+		Long time1, time2;
+		Double t1, t2;
 		Oblig3 ob3 = new Oblig3(Integer.parseInt(args[0]));
 		int n = ob3.n;
 		SequentialSieve seqSieve = new SequentialSieve(n);
+
+
+		time2 = System.nanoTime();
+		int[] paraPrims = ob3.paraEra();
+		t2 = (System.nanoTime()-time2)/1000000.0;
+
+
+		time1 = System.nanoTime();
 		int[] seqPrims = seqSieve.findPrimes();
-		System.out.println(Arrays.toString(seqPrims));
+		t1 = (System.nanoTime()-time1)/1000000.0;
+		
 		//ob3.seqFactor(seqPrims);
 		//ob3.writeFactors();
-		ob3.paraFactor(seqPrims);
+		//ob3.paraFactor(seqPrims);
+
+		System.out.println(Arrays.toString(seqPrims));
+		System.out.println(Arrays.toString(paraPrims));
+
+		System.out.println("We found the same primes: " +  ob3.comparePrimes(seqPrims, paraPrims));
+		System.out.printf("seq time: %f para time: %f \n",t1,t2);
+
 	}
 
 	public Oblig3(int n) {
@@ -39,6 +57,7 @@ public class Oblig3 {
 		writer.writeFactors();
 	}
 
+	//TODO edit this to store factors locally first.
 	public void seqFactor(int[] primes) {
 		for (long i = n*n - 100; i < n * n; i++) {
 			long org = i;
@@ -63,9 +82,170 @@ public class Oblig3 {
 		}
 	}
 
+	public boolean comparePrimes(int[] a , int[]b ) {
+		if(a.length != b.length) return false;
+
+		for (int i = 0; i < a.length; i++) {
+			if(a[i] != b[i])return false;
+		}
+
+		return true;
+	}
+
+	public int[] paraEra() {
+		threads = 8;
+		int cells = n / 16 + 1;
+		byteArray = new byte[cells];
+		ArrayList<Integer> primes = new ArrayList<Integer>();
+		//finding first primes
+		int currentPrime = 3;
+		int squareRootN = (int) Math.sqrt(n);
+
+		while(currentPrime != 0 && currentPrime <= squareRootN) {
+			primes.add(currentPrime);
+			traverse(currentPrime, squareRootN);
+			currentPrime = findNextPrime(currentPrime + 2, squareRootN);
+		}
+		
+		cb = new CyclicBarrier(threads + 1);
+		int segLenght = byteArray.length / threads;
+		for (int i = 0; i < threads; i++) {
+			new Thread(new EraThread(i, segLenght, primes)).start();
+		}
+
+		try {
+			cb.await();
+		}
+
+		catch(Exception e) {System.exit(-1);}
+
+		int counter = 0;
+		for (int i = 3; i < n; i += 2) {
+			if(isPrime(i))counter++;
+		}
+
+
+		int ret[] = new int[counter + 1];
+        ret[0] = 2;
+
+        currentPrime = 3;
+        for (int i = 1; i < counter; i++) {
+            ret[i] = currentPrime;
+            currentPrime = findNextPrime(currentPrime+2,n);
+        }
+		return ret;
+	}
+
+	void traverse(int p, int high) {
+        for (int i = p*p; i < high; i += p * 2) {
+            flip(i);
+        }
+	}
+	
+	void flip(int i) {
+        if (i % 2 == 0) {
+            return;
+        }
+
+        int byteCell = i / 16;
+        int bit = (i / 2) % 8;
+
+        byteArray[byteCell] |= (1 << bit);
+    }
+
+
+	int findNextPrime(int startAt, int high) {
+        for (int i = startAt; i < high; i += 2) {
+            if(isPrime(i)) {
+                return i;
+            }
+        }
+        return 0;
+    }
+
+	boolean isPrime(int i) {
+        if((i % 2) == 0) {
+            return false;
+        }
+
+        int byteCell = i / 16;
+        int bit = (i / 2) % 8;
+
+        return (byteArray[byteCell] & (1 << bit)) == 0;
+	}
+
+
+	
+	public class EraThread implements Runnable {
+		int id, low, high, segLenght, intLow, intHigh;
+		ArrayList<Integer> primes;
+
+		public EraThread(int id, int segLenght, ArrayList<Integer> primes) {
+			this.id = id;
+			this.segLenght = segLenght;
+			this.primes = primes;
+			this.low = segLenght * id;
+			intLow = 16 * low + 1;
+
+			if(id == threads -1) {
+				high = byteArray.length;
+				intHigh = n;
+			}
+
+			else {
+				this.high = low + segLenght;
+				intHigh = 16 * (high - 1) + 15;
+			}
+
+		}
+
+		
+
+		public void run() {
+			//System.out.printf("id %d low %d high %d lowInt %d highInt %d\n", id, low, high, intLow, intHigh);
+
+			for (Integer p : primes) {
+				par_traverse(p, intLow, intHigh);
+			}
+
+			try {
+				cb.await();
+			}
+			catch(Exception e) {return;}
+		}
+
+
+		//finds the first valid start point to be crossed out
+		//need help with some math
+		//low is the lowest int value represented in the byte array that the thread holds, same for high
+		//
+		public void par_traverse(int p, int low, int high) {
+			if(p * p > high)return;			
+			int t;
+			if((low%p == 0) && (low != p) && (low%2 != 0)) t = low; 
+			else {	
+			t = (low + p) / p * p;
+			if (t % 2 == 0) t += p; 
+			}
+			int byteCell;
+       		int bit;
+			for (int i = t; i <= high; i+= p * 2) {
+				byteCell = i / 16;
+				bit = (i / 2) % 8;
+				byteArray[byteCell] |= (1 << bit);
+			}
+		}
+	}
+
 
 	public void paraFactor(int[] primes) {
 		threads = 4;
+
+
+		/* TODO
+		find first M primes, for M*M < N
+		then give the list of primes to the threads
+		and then let them go through a subsegment of the array and flip the bytes */
 
 		cb = new CyclicBarrier(threads + 1);
 
@@ -99,6 +279,8 @@ public class Oblig3 {
             }
 
 	}
+
+
 
 
 	public class Worker implements Runnable{
@@ -154,6 +336,10 @@ public class Oblig3 {
 				cb.await();
 			}
 			catch(Exception e) {return;}
+		}
+
+		public void factorize() {
+			return;
 		}
 
 	}
