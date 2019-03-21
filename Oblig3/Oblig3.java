@@ -47,14 +47,15 @@ public class Oblig3 {
 			ob3.paraFactors = new TreeMap<Long, ArrayList<Long>>(); 
 		
 
-			time2 = System.nanoTime();
-			paraPrims = ob3.paraEra();
-			times[0][i] = (System.nanoTime()-time2)/1000000.0;
-		
 			time1 = System.nanoTime();
 			seqPrims = seqSieve.findPrimes();
-			times[1][i] = (System.nanoTime()-time1)/1000000.0;
+			times[0][i] = (System.nanoTime()-time1)/1000000.0;
 
+
+			time2 = System.nanoTime();
+			paraPrims = ob3.paraEra();
+			times[1][i] = (System.nanoTime()-time2)/1000000.0;
+		
 			time3 = System.nanoTime();
 			ob3.paraFactor(seqPrims);
 			times[2][i] = (System.nanoTime()-time3)/1000000.0;
@@ -87,7 +88,7 @@ public class Oblig3 {
 		ob3.writeFactorsNew(); 
 
 
-		System.out.printf("Finished the running of Oblig3 for %d n %d Threads in %4fms!", ob3.n, ob3.threads, (System.nanoTime()-runTime)/1000000.0);
+		System.out.printf("Finished the running of Oblig3 for %d n %d Threads in %4fms!\n", ob3.n, ob3.threads, (System.nanoTime()-runTime)/1000000.0);
 	}
 
 	public Oblig3(int n) {
@@ -113,6 +114,7 @@ public class Oblig3 {
 				writer.addFactor(paraNew[i].num, l);
 			}
 		}
+		writer.writeFactors();
 	}
 
 	public void seqFactor(int[] primes) {
@@ -416,7 +418,6 @@ public class Oblig3 {
 			ArrayList<Long> al = new ArrayList<Long>();
 			al.add(l);
 			paraFactors.put(l,al); */
-
 			paraNew[i] = new FacMonitor(n * n - 100 + i);
 		}
 
