@@ -98,18 +98,6 @@ public class Oblig3New {
 		writer = new Oblig3Precode(n);
 	} 
 
-	public void writeFactors() {
-		for (Map.Entry<Long, ArrayList<Long>> entry : seqFactors.entrySet()) {
-			
-			for (Long l : entry.getValue()) {
-				writer.addFactor(entry.getKey(), l);
-			}
-
-		}
-		
-		writer.writeFactors();
-	}
-
 	public void writeFactorsNew() {
 		for (int i = 0; i < 100; i++) {
 			for (Long l : paraNew[i].factors) {
@@ -164,28 +152,6 @@ public class Oblig3New {
 		}
 
 		return true;
-	}
-
-
-	public void printFactors(TreeMap<Long, ArrayList<Long>> factors) {
-		for(Map.Entry<Long, ArrayList<Long>> entry : factors.entrySet()) {
-	   
-			// Starting a new line with the base
-			System.out.print(entry.getKey() + " : ");
-			
-			
-			// Sort the factors
-			Collections.sort(entry.getValue());
-			
-			// Then print the factors
-			String out = "";
-			for(Long l : entry.getValue())
-				out += l + "*";
-			
-			// Removing the trailing '*'
-			System.out.println(out.substring(0, out.length()-1));
-		
-		}
 	}
 
 
@@ -416,11 +382,8 @@ public class Oblig3New {
 	public void paraFactor(int[] primes) {
 		
 		for (int i = 0; i < 100; i++) {
-			/* Long l = new Long(i);
-			ArrayList<Long> al = new ArrayList<Long>();
-			al.add(l);
-			paraFactors.put(l,al); */
-			paraNew[i] = new FacMonitor(n * n - 100 + i);
+			long l = n * n - 100 + i;
+			paraNew[i] = new FacMonitor(l);
 		}
 
 		cb = new CyclicBarrier(threads + 1);
@@ -442,9 +405,6 @@ public class Oblig3New {
 
 		for (int i = 0; i < 100; i++) {
 			paraNew[i].cleanUp();
-
-			//Collections.sort(paraNew[i].factors);
-
 		}
 
 	}
@@ -482,9 +442,6 @@ public class Oblig3New {
 			}
 			catch(Exception e) {return;}
 		}
-
-		
-		
 
 	}
 
