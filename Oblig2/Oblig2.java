@@ -70,6 +70,7 @@ public class Oblig2 {
 		}
 
 		ma.writeMatrix();
+		System.out.println("Same result for para and seq: " + ma.compare(ma.para, ma.seq));
 
 	}
 
@@ -200,9 +201,8 @@ public class Oblig2 {
 		int x = 0;
 		for (int i = 0;i < n ; i++) {
 			for (int j = 0; j < n; j++) {
-				if (comp[i][j] != correct[i][j]) {
-					x++;
-					System.out.println("Waaaaah woooooh " + x);
+				if (comp[i][j] - correct[i][j] > 0.0001 || correct[i][j] - comp[i][j] > 0.0001) {
+					return false;
 				}
 			}
 		}
