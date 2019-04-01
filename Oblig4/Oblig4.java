@@ -215,8 +215,9 @@ public class Oblig4 {
             //who needs synchronisation anyway xd
             for (int i = 0; i < threads; i++) {
                 if(maxArr[i] > max) max = maxArr[i];
-             }
+            }
 
+            radix(max);
 
             try {
                 mainBarrier.await();
@@ -254,11 +255,25 @@ public class Oblig4 {
             for (int i = 0; i < bit.length; i++ ) {
                 bit[i] = bitmax / numDigits;
                 if (rest-- > 0) bit[i]++;
-            }    
+                
+            }
+            
+            int shift = 0;
+            for (int i = 0; i < bit.length; i++) {
+                radix(a, b, bit[i], shift);
+
+                
+
+                try {
+                    synch.await();
+                } catch (Exception e) {
+                    //TODO: handle exception
+                }
+            }
 
         }
 
-        radix(int[] a, int[] b, masklen, shift) {
+        radix(int[] a, int[] b, int masklen, int shift) {
 
         }
 
