@@ -16,22 +16,22 @@ public class Oblig3 {
 	public Oblig3Precode writer;
 	public int threads = 8;
 	TreeMap<Long, ArrayList<Long>> seqFactors = new TreeMap<Long, ArrayList<Long>>(); 
-	TreeMap<Long, ArrayList<Long>> paraFactors = new TreeMap<Long, ArrayList<Long>>(); 
 	FacMonitor[] paraNew = new FacMonitor[100];
 	CyclicBarrier cb;
 	byte[] byteArray;
 
-	Long[] base = new Long[100];
 
 	public static void main(String[] args) {
 		if (args.length < 1) {
 			System.out.println("Correct usage: java Oblig3 [N] {Threads}");
 			System.exit(0);			
-		}		
+		}
+		int threads = Runtime.getRuntime().availableProcessors();
+		if (args.length > 1) threads = Integer.parseInt(args[1]);
 		Long time1, time2;
 		Double t1 = 5.0;
 		Double t2 = 5.0;
-		Oblig3 ob3 = new Oblig3(Integer.parseInt(args[0]));
+		Oblig3 ob3 = new Oblig3(Integer.parseInt(args[0]), threads);
 		int n = ob3.n;
 		SequentialSieve seqSieve = new SequentialSieve(n);
 		int[] seqPrims = {1};
@@ -44,7 +44,6 @@ public class Oblig3 {
 		for (int i = 0; i < 7; i++) {
 			System.out.print(i + " ");
 			ob3.seqFactors = new TreeMap<Long, ArrayList<Long>>(); 
-			ob3.paraFactors = new TreeMap<Long, ArrayList<Long>>(); 
 		
 
 			time1 = System.nanoTime();
@@ -72,19 +71,8 @@ public class Oblig3 {
 		for (int i = 0; i < 4; i++) {
 			Arrays.sort(times[i]);
 		}
-		
 
-		
-		//ob3.printFactors(ob3.paraFactors);
-		//ob3.printFactors(ob3.seqFactors);
-
-
-		/* for (int i = 0; i < 100; i++) {
-			Long[] temp = ob3.paraNew[i].factors.stream().toArray(Long[]::new);
-			System.out.println(ob3.paraNew[i].num + " " + Arrays.toString(temp));
-		} */
-
-		//System.out.println("We got the same factors for N * n - 100: " + ob3.compareFactors());
+		System.out.println("We got the same factors for N * n - 100: " + ob3.compareFactors());
 		System.out.printf("Factors: seqTime %.4fms paraTime %.4fms speedup %.3f\n", times[3][3], times[2][3],times[3][3] / times[2][3]);
 		System.out.println("Writing factors from para to file");
 		ob3.writeFactorsNew(); 
@@ -93,9 +81,10 @@ public class Oblig3 {
 		System.out.printf("Finished the running of Oblig3 for %d n %d Threads in %4fms!\n", ob3.n, ob3.threads, (System.nanoTime()-runTime)/1000000.0);
 	}
 
-	public Oblig3(int n) {
+	public Oblig3(int n, int threads) {
 		this.n = n;
 		writer = new Oblig3Precode(n);
+		this.threads = threads;
 	} 
 
 	public void writeFactorsNew() {
@@ -107,10 +96,12 @@ public class Oblig3 {
 		writer.writeFactors();
 	}
 
+
 	public void seqFactor(int[] primes) {
-		for (long i = n*n - 100; i < n * n; i++) {
-			long org = i;
-			long modified = i;
+		for (long i = 0; i < 100; i++) {
+			
+			long org = (long) n*n - 100 + i;
+			long modified = org;
 			int pc = 0;
 			
 			while(modified != 1 && pc < primes.length) {
@@ -154,32 +145,29 @@ public class Oblig3 {
 		return true;
 	}
 
-
 	public boolean compareFactors() {
 		Long temp;
+		long tempo;
 		ArrayList<Long> seq, prim;
 
-		for (int i = n*n - 100; i < n * n; i++) {
-			temp = new Long(i);
+		for (int i = 0; i < 100; i++) {
+			tempo = (long) n*n - 100 + i;
+			temp = new Long(tempo);
 			seq = seqFactors.get(temp);
-			prim = paraFactors.get(temp);
-			if(seq == null) {
-				System.out.println("seq null");
-			}
-			if(prim == null) {
-				System.out.println("prim null " + i);
-			}
-			if(paraFactors.get(temp).size() != seqFactors.get(temp).size()) {
-				System.out.println("different factor size");
+			prim = paraNew[i].factors;
+
+			//System.out.println(prim + " " + seq + " " + tempo);
+
+			if(prim.size() != seq.size()) {
+				System.out.println("different factor size " + prim.size() + " " + seq.size());
 				return false;
 			}
-			seq = seqFactors.get(temp);
-			prim = seqFactors.get(temp);
+
 			Collections.sort(prim);
 			Collections.sort(seq);
 			for (int j = 0; j < prim.size(); j++) {
-				if(seq.get(j) != prim.get(j)) {
-					System.out.println("Different factors for: " + i);
+				if(!prim.get(j).equals(seq.get(j))) {
+					System.out.println("Different factors for: " + seq.get(j) + " " + prim.get(j) );
 					return false;
 				}
 			}
@@ -189,7 +177,6 @@ public class Oblig3 {
 
 	
 	
-
 
 	/**
 	 *  #####  #######
@@ -233,12 +220,6 @@ public class Oblig3 {
 		for (int i = 0; i < threads; i++) {
 			counter += era[i].ps;
 		}
-
-	/* 	  for (int i = 3; i < n; i += 2) {
-			if(isPrime(i)) {
-				counter++;
-			}
-		} */
   
 		int ret[] = new int[counter];
         ret[0] = 2;
@@ -346,7 +327,6 @@ public class Oblig3 {
 
 
 		//finds the first valid start point to be crossed out
-		//need help with some math
 		//low is the lowest int value represented in the byte array that the thread holds, same for high
 		//
 		public void par_traverse(int p, int low, int high) {
@@ -382,7 +362,7 @@ public class Oblig3 {
 	public void paraFactor(int[] primes) {
 		
 		for (int i = 0; i < 100; i++) {
-			long l = n * n - 100 + i;
+			long l = (long) n * n - 100 + i;
 			paraNew[i] = new FacMonitor(l);
 		}
 
@@ -397,11 +377,6 @@ public class Oblig3 {
 		}
 		
 		catch(Exception e) {return;}
-
-		//remove leading 1's if there are any :)
-		/* for(Map.Entry<Long, ArrayList<Long>> entry : paraFactors.entrySet()) {
-			if(entry.getValue().get(0) == 1) entry.getValue().remove(0);
-		} */
 
 		for (int i = 0; i < 100; i++) {
 			paraNew[i].cleanUp();
@@ -420,10 +395,10 @@ public class Oblig3 {
 
 		public void run() {
 			for (int i = 0; i < 100; i++) {
-				long orig = n * n - 100 + i;
+				long orig = (long) n * n - 100 + i;
 				long modified = orig;
 				int pc = id;
-				while(modified != 1 && pc < primes.length && pc < modified * modified) {
+				while(modified != 1 && pc < primes.length && pc < modified && primes[pc] * primes[pc] < modified) {
 
 					if (modified % primes[pc] == 0) {
 						paraNew[i].addFactor(primes[pc]);
@@ -444,7 +419,6 @@ public class Oblig3 {
 		}
 
 	}
-
 
 	public class FacMonitor{
 		long num;

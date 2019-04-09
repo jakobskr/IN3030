@@ -9,10 +9,9 @@ public class Oblig4 {
     int seed;
     int n;
     int NUM_BIT = 8; // how many bits in a digit, should be 8-11
-    int radixMin = 32; //the min range of when to use radix
     final Oblig4Precode.Algorithm  SEQ =  Oblig4Precode.Algorithm.SEQ;
     final Oblig4Precode.Algorithm  PARA =  Oblig4Precode.Algorithm.PARA;
-    int[] a, b, paraA;
+    int[] a, b, paraA, paraB;
     final int[] original;
     CyclicBarrier mainBarrier;
     CyclicBarrier synch;
@@ -30,6 +29,7 @@ public class Oblig4 {
         a = original.clone();
         paraA = original.clone();
         b = new int[n];
+        paraB = new int[n];
 
         //System.out.println(Arrays.toString(original));
     }
@@ -41,30 +41,37 @@ public class Oblig4 {
         if(args.length < 2) {
             System.exit(-1);
         }
-
         n = Integer.parseInt(args[0]);
         seed = Integer.parseInt(args[1]);
        
         Oblig4 sort = new Oblig4(4,seed,n);
         long t1;
+        double[] seqTimes = new double[7];
+        double[] parTimes = new double[7];
 
         for (int i = 0; i < 7; i++) {
-           t1 = System.nanoTime();
-           sort.radixSeq();
-           double seqTime = (System.nanoTime() - t1) / 1000000.0;
-           System.out.printf("seq time used: %f.4 ms\n", seqTime);
-           Arrays.fill(sort.b,0);
-           t1 = System.nanoTime();
-           sort.radixPara();
-           double paraTime = (System.nanoTime() - t1) / 1000000.0;
-           System.out.printf("para time used: %f.4 ms\n", paraTime);
-           Arrays.fill(sort.b,0);
-
-           for (int j = 0; j < n; j++) {
+            
+            for (int j = 0; j < n; j++) {
                 sort.a[j] = sort.original[j];
                 sort.paraA[j] = sort.original[j];
-           }
+            }
+            t1 = System.nanoTime();
+            sort.radixSeq();
+            seqTimes[i] = (System.nanoTime() - t1) / 1000000.0;
+            t1 = System.nanoTime();
+            sort.radixPara();
+            parTimes[i] = (System.nanoTime() - t1) / 1000000.0;
+
+            
         }
+
+        System.out.printf("seq correct: %b\npara correct: %b\n",sort.testSort(sort.a),sort.testSort(sort.paraA));
+        Arrays.sort(seqTimes);
+        Arrays.sort(parTimes);
+        System.out.printf("seq time: %f.4 ms\npara time: %f.4 ms\nspeedup: %f.2\n", seqTimes[3], parTimes[3], (double) seqTimes[3] / parTimes[3]);
+        Oblig4Precode.saveResults(Oblig4Precode.Algorithm.SEQ, seed, sort.a);
+        Oblig4Precode.saveResults(Oblig4Precode.Algorithm.PARA, seed, sort.paraA);
+
     }
 
 
@@ -146,21 +153,21 @@ public class Oblig4 {
 
     
     //tatt fra apendix a.
-    public void testSort(int [] a){
+    public boolean testSort(int [] a){
         int[] comp = original.clone();
         Arrays.sort(comp);
       for (int i = 0; i< a.length;i++) {
         if (a[i] != comp[i]){
           System.out.println("SorteringsFEIL på: "+
           i +" a["+i+"] = " + a[i] + " fasit[" + i + "]: " + comp[i]);
-            return;
+            return false;
           }
         }
+        return true;
     }
 
     public void radixPara() {
         paraMax = a[n / 2];
-        threads = 4;
         allCount = new int[threads][];
         mainBarrier = new CyclicBarrier(threads + 1);
         synch = new CyclicBarrier(threads);
@@ -275,6 +282,7 @@ public class Oblig4 {
                 radix(bit[i], shift);
                 //System.out.println(id + " " + bit[i] + " " + shift + " " + bit.length);
                 shift += bit[i];
+                
                 try {
                     synch.await();
                 } catch (Exception e) {
@@ -282,9 +290,9 @@ public class Oblig4 {
                 }
 
                 if(id == 0 ) {
-                    tempArr = a;
-                    a = b;
-                    b = tempArr;
+                    tempArr = paraA;
+                    paraA = paraB;
+                    paraB = tempArr;
                 }
                 try {
                     synch.await();
@@ -293,6 +301,11 @@ public class Oblig4 {
                 }
             }
 
+            if (id == 0) {
+                if ((bitmax / NUM_BIT) % 2 != 0) {
+                    System.arraycopy(paraA, 0, paraB, 0, a.length);
+                }
+            }
             
           
         }
@@ -333,7 +346,7 @@ public class Oblig4 {
 
             
             for (int i = start; i < end; i++) {
-                b[digitOffset[(paraA[i] >> shift) & (mask)]++] = paraA[i];
+                paraB[digitOffset[(paraA[i] >> shift) & (mask)]++] = paraA[i];
             }
 
         }
