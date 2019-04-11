@@ -23,7 +23,7 @@ public class Oblig3 {
 
 	public static void main(String[] args) {
 		if (args.length < 1) {
-			System.out.println("Correct usage: java Oblig3 [N] {Threads}");
+			System.out.println("Correct usage: java Oblig3 [N]  {Threads}");
 			System.exit(0);			
 		}
 		int threads = Runtime.getRuntime().availableProcessors();
