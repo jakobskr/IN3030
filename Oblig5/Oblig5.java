@@ -44,82 +44,75 @@ public class Oblig5 {
 
         //System.out.println(distance(3, 4, 7, 8, 1, 1) + " "  + distance(7, 8, 3, 4, 1, 1));
         IntList koHyll = new IntList(15);
-        IntList points = new IntList(4);
+        IntList rightPoints = new IntList(4);
+        IntList leftPoints = new IntList(4);
 
         int maxPos = 0;
         int minPos = 0;
-        int p3 = 0;
+        int nextLeft = -1;
+        int nextRight = -1;
+
         for (int i = 1; i < n; i++) {
             if (x[i] > x[maxPos])
                 maxPos = i;
             if (x[i] < x[minPos])
                 minPos = i;
         }
-        koHyll.add(maxPos);
-        double furthest = 0.1;
-        int a = y[maxPos] - y[minPos];
-        int b = x[minPos] - x[maxPos];
-        int c = y[minPos] * x[maxPos] - y[maxPos] * x[minPos];
+
+        double furthestL = 0.1;
+        double furthestR = 0.1;
+        int ar = y[maxPos] - y[minPos];
+        int br = x[minPos] - x[maxPos];
+        int cr = y[minPos] * x[maxPos] - y[maxPos] * x[minPos];
+        
+        int al = y[minPos] - y[maxPos];
+        int bl = x[maxPos] - x[minPos];
+        int cl = y[maxPos] * x[minPos] - y[minPos] * x[maxPos];
 
         for (int i = 0; i < n; i++) {
             if (i == maxPos || i == minPos)
                 continue;
-            double d = (double) ((a * x[i] + b * y[i] + c));
+            double d = (double) ((ar * x[i] + br * y[i] + cr));
             
             if (d <= 0) {
-                points.add(i);
+                rightPoints.add(i);
 
-                if (d < furthest) {
-                    p3 = i;
-                    furthest = d;
+                if (d < furthestR) {
+                    nextRight = i;
+                    furthestR = d;
                 }
             }
-            
-        }
-
-        //System.out.println("the points " + points);
-        //System.out.println("hjelp " + points);
-        //System.out.printf("%d %d %d \n", maxPos, minPos, p3);
-        try {
-            sekvRek(maxPos, minPos, p3, points, koHyll);
-
-        } catch (OutOfMemoryError e) {
-            System.out.println(calls);
-            System.exit(0);
-        }
-        
-       
-        koHyll.add(minPos);
-        points = new IntList(10);
-        p3 = 0;
-        furthest = 0.1;
-        a = y[minPos] - y[maxPos];
-        b = x[maxPos] - x[minPos];
-        c = y[maxPos] * x[minPos] - y[minPos] * x[maxPos];
-
-        for (int i = 0; i < n; i++) {
-            if (i == maxPos || i == minPos) continue;
                 
-                double d = (double) ((a * x[i] + b * y[i] + c));
-                if (d <= 0) {
-                points.add(i);
+            double dl = (double) ((al * x[i] + bl * y[i] + cl));
 
-                if (d < furthest) {
-                    p3 = i;
-                    furthest = d;
+            if (dl <= 0) {
+                leftPoints.add(i);
+
+                if (dl < furthestL) {
+                    nextLeft = i;
+                    furthestL = dl;
                 }
             }
             
+            
         }
 
-        //System.out.println("heck me up " + points);
-        sekvRek(minPos,maxPos,p3,points,koHyll);
-        
+        koHyll.add(maxPos);
+        if(nextRight != -1) {
+            newRec(maxPos, minPos, nextRight, rightPoints, koHyll);
+        }
+    
+        koHyll.add(minPos);
 
+        if(nextLeft != -1) {
+            newRec(minPos,maxPos,nextLeft,leftPoints,koHyll);
+        }
+        
         MAX_X = x[0];
         MIN_X = x[0];
         MAX_Y = y[0];
         MIN_Y = y[0];
+
         for (int i = 0; i < n; i++) {
             if(x[i] < MIN_X) MIN_X = x[i];
             if(x[i] > MAX_X) MAX_X = x[i];
@@ -140,11 +133,7 @@ public class Oblig5 {
     public void sekvRek(int p1, int p2, int p3, IntList m, IntList koHyll) {
         calls++;
         //System.out.println(p1 + " " + p2 + " " + p3 +  " " +  m);
-        if (m.len < 1) {
-            //System.out.println("added " + p3);
-            koHyll.add(p3);
-            return;
-        }
+       
 
         //System.out.printf("rec: %d %d %d \n", p1, p2 , p3);
         IntList points = new IntList(3);
@@ -176,15 +165,6 @@ public class Oblig5 {
 
            
         }
-
-        /* //we only found points on line, now we how to check if the given points are between p1-p3;
-        if (furthest == 0) {
-            points = findPointsBetween(p1, p3, points);
-            if (points.len != 0) {
-                next = points.get(0);
-
-            }
-        } */
 
         if (next != -1) {
             sekvRek(p1, p3, next, points, koHyll);
@@ -220,22 +200,80 @@ public class Oblig5 {
         }
 
 
-        /* //lets the right recursive handle straight lines : ), i have noe idea what is wrong MonkaS
-        if(furthest == 0 ) {
-            points = findPointsBetween(p2, p3, points);
-            if (points.len == 0) {
-                return;
-            }
-            next = points.get(0);
-        }
-        */
-
-
         if (next != -1) {
             sekvRek(p3, p2, next, points, koHyll);
         }
         points = null;
 
+
+    }
+
+    public void newRec(int p1, int p2,int p3, IntList m, IntList koHyll) {
+
+        int ar = y[p1] - y[p3];
+        int br = x[p3] - x[p1];
+        int cr = y[p3] * x[p1] - y[p1] * x[p3];
+        
+        int al = y[p3] - y[p2];
+        int bl = x[p2] - x[p3];
+        int cl = y[p2] * x[p3] - y[p3] * x[p2];
+
+        IntList rightPoints = new IntList(3);
+        IntList leftPoints = new IntList(3);
+        int nextLeft = -1;
+        int nextRight = -1;
+        double furthestR = 0;
+        double furthestL = 0;
+
+        for (int i = 0; i < m.len; i++) {
+            if (m.get(i) == p1 || m.get(i) == p2 || m.get(i) == p3) {
+                continue;
+            }
+
+            double d = (double) ((ar * x[m.get(i)] + br * y[m.get(i)] + cr));
+            if (d <= 0) {
+               
+                if(d < 0) rightPoints.add(m.get(i));
+
+                else if(d == 0 && isBetween(p1,p3,m.get(i))) {
+                    rightPoints.add(m.get(i));
+                    if(nextRight == -1) nextRight = m.get(i);
+                }
+
+                if (d < furthestR) {
+                    nextRight = m.get(i);
+                    furthestR = d;
+                }
+            }
+                
+            double dl = (double) ((al * x[m.get(i)] + bl * y[m.get(i)] + cl));
+            
+            if (dl <= 0) {
+
+                if(dl < 0) leftPoints.add(m.get(i));
+
+                else if(dl == 0 && isBetween(p3,p2,m.get(i))) {
+                    leftPoints.add(m.get(i));
+                    if(nextLeft == -1) nextLeft = m.get(i);
+                }
+
+                if (dl < furthestL) {
+                    nextLeft = m.get(i);
+                    furthestL = dl;
+                }
+            }
+
+        }
+        
+        if (nextRight != -1) {
+            newRec(p1, p3, nextRight, rightPoints, koHyll);
+        }
+    
+        koHyll.add(p3);      
+            
+        if (nextLeft != -1) {
+            newRec(p3, p2, nextLeft, leftPoints, koHyll);
+        }
 
     }
 
@@ -256,27 +294,6 @@ public class Oblig5 {
             return true;
         }
         return false;
-    }
-
-    public IntList findPointsBetween(int p1, int p2, IntList m) {
-        IntList points = new IntList(3);
-        int p1x = x[p1]; int p1y = y[p1];
-        int p2x = x[p2]; int p2y = y[p2];
-        
-        for (int i = 0; i < m.len; i++) {
-            int ix = x[m.get(i)]; int iy = y[m.get(i)];
-            
-            if(ix == p1x && ((iy < p1y && iy > p2y) || (iy > p1y && iy < p2y))) {
-                points.add(m.get(i));
-            }
-
-            if(iy == p1y && ((ix < p1x && ix > p2x) || (ix > p1x && ix < p2x))) {
-                points.add(m.get(i));
-            }
-
-
-        }
-        return points;
     }
 
     public static void main(String[] args) {
