@@ -8,7 +8,7 @@ public class Oblig4 {
     int threads;
     int seed;
     int n;
-    int NUM_BIT = 8; // how many bits in a digit, should be 8-11
+    int NUM_BIT = 7; // how many bits in a digit, should be 8-11
     final Oblig4Precode.Algorithm  SEQ =  Oblig4Precode.Algorithm.SEQ;
     final Oblig4Precode.Algorithm  PARA =  Oblig4Precode.Algorithm.PARA;
     int[] a, b, paraA, paraB;
@@ -46,6 +46,15 @@ public class Oblig4 {
         if(args.length < 2) {
             System.exit(-1);
         }
+
+        if (args.length >= 3) {
+            threads = Integer.parseInt(args[2]);
+        }
+
+        else {
+            threads = Runtime.getRuntime().availableProcessors();
+        }
+
         n = Integer.parseInt(args[0]);
         seed = Integer.parseInt(args[1]);
        
@@ -60,6 +69,7 @@ public class Oblig4 {
                 sort.a[j] = sort.original[j];
                 sort.paraA[j] = sort.original[j];
             }
+
             t1 = System.nanoTime();
             sort.radixSeq();
             seqTimes[i] = (System.nanoTime() - t1) / 1000000.0;
@@ -73,7 +83,7 @@ public class Oblig4 {
         System.out.printf("seq correct: %b\npara correct: %b\n",sort.testSort(sort.a),sort.testSort(sort.paraA));
         Arrays.sort(seqTimes);
         Arrays.sort(parTimes);
-        System.out.printf("seq time: %f.4 ms\npara time: %f.4 ms\nspeedup: %f.2\n", seqTimes[3], parTimes[3], (double) seqTimes[3] / parTimes[3]);
+        System.out.printf("seq time: %.4f ms\npara time: %.4f ms\nspeedup: %.4f\n", seqTimes[3], parTimes[3], (double) seqTimes[3] / parTimes[3]);
         Oblig4Precode.saveResults(Oblig4Precode.Algorithm.SEQ, seed, sort.a);
         Oblig4Precode.saveResults(Oblig4Precode.Algorithm.PARA, seed, sort.paraA);
 
@@ -153,7 +163,6 @@ public class Oblig4 {
             b[count[(a[i] >> shift) & (mask)]++] = a[i];
         }
 
-        
     }
 
     
