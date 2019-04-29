@@ -19,7 +19,7 @@ class TegnUt extends JFrame{
 		  x = d.x;
 		  y = d.y;
 		  n = d.n;
-		  size = 800;
+		  size = 600;
 		  margin = 50;
 	      scale =size/d.MAX_X +1;
 		  setTitle("Oblig4, num points:"+n);
@@ -39,7 +39,7 @@ class TegnUt extends JFrame{
     class Graph extends JPanel   {
 	    void drawPoint(int p, Graphics g) {
 			     int SIZE =7;
-			     if (n <= 1001) g.drawString( "" + p + "",xDraw(x[p])-SIZE/2,yDraw(y[p])-SIZE/2);
+			     if (n <= 1001) g.drawString( "" + p + "(" + x[p] + "," + y[p] + ")",xDraw(x[p])-SIZE/2,yDraw(y[p])-SIZE/2);
 			     else if (n <= 200)g.drawString(p+"",xDraw(x[p])-SIZE/2,yDraw(y[p])-SIZE/2);
 				 g.drawOval (xDraw(x[p])-SIZE/2,yDraw(y[p])-SIZE/2,SIZE,SIZE);
 				 g.fillOval (xDraw(x[p])-SIZE/2,yDraw(y[p])-SIZE/2,SIZE,SIZE);

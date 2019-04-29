@@ -42,10 +42,11 @@ public class Oblig5 {
     }
 
     public void sekvMetode() {
+
+        //System.out.println(distance(3, 4, 7, 8, 1, 1) + " "  + distance(7, 8, 3, 4, 1, 1));
         IntList koHyll = new IntList(15);
         IntList points = new IntList(4);
 
-        System.out.println(distance(7, 4, 1, 4, 8, 4));
         int maxPos = 0;
         int minPos = 0;
         int p3 = 0;
@@ -59,12 +60,13 @@ public class Oblig5 {
         double furthest = 0.1;
         int a = y[maxPos] - y[minPos];
         int b = x[minPos] - x[maxPos];
-        int c = y[maxPos] * x[minPos] - x[maxPos] * y[minPos];
+        int c = y[minPos] * x[maxPos] - y[maxPos] * x[minPos];
 
         for (int i = 0; i < n; i++) {
             if (i == maxPos || i == minPos)
                 continue;
             double d = (double) ((a * x[i] + b * y[i] + c));
+            
             if (d <= 0) {
                 points.add(i);
 
@@ -77,7 +79,7 @@ public class Oblig5 {
         }
 
         //System.out.println("the points " + points);
-
+        //System.out.println("hjelp " + points);
         //System.out.printf("%d %d %d \n", maxPos, minPos, p3);
         try {
             sekvRek(maxPos, minPos, p3, points, koHyll);
@@ -111,7 +113,7 @@ public class Oblig5 {
             
         }
 
-
+        //System.out.println("heck me up " + points);
         sekvRek(minPos,maxPos,p3,points,koHyll);
         
 
@@ -127,16 +129,19 @@ public class Oblig5 {
 
         }
         
+        System.out.println(koHyll);
+
         if(n < 100000 ) {
-            System.out.println(koHyll);
             new TegnUt(this, koHyll);
         }
         
+        System.out.println("heckin' " + calls + " calls");
     }
 
     public void sekvRek(int p1, int p2, int p3, IntList m, IntList koHyll) {
         calls++;
-        if (m.len == 1) {
+        //System.out.println(p1 + " " + p2 + " " + p3 +  " " +  m);
+        if (m.len < 1) {
             //System.out.println("added " + p3);
             koHyll.add(p3);
             return;
@@ -158,11 +163,6 @@ public class Oblig5 {
             if (d <= 0) {
                 points.add(m.get(i));
 
-                if(furthest == 0) {
-                    furthest = d;
-                    next = m.get(i);
-                }
-
                 if (d < furthest) {
                     next = m.get(i);
                     furthest = d;
@@ -172,27 +172,34 @@ public class Oblig5 {
            
         }
 
+        
+        //we only found points on line, now we how to check if the given points are between p1-p3;
+        if (furthest == 0) {
+            points = findPointsBetween(p1, p3, points);
+            if (points.len != 0) {
+                next = points.get(0);
+
+            }
+        }
+
         if (next != -1) {
+
             sekvRek(p1, p3, next, points, koHyll);
         }
 
-        points = new IntList(5);
+        points = new IntList(3);
         koHyll.add(p3);
 
         //left side
         next = -1;
         furthest = 0.0;
         for (int i = 0; i < m.len; i++) {
+            
             if (m.get(i) == p3 || m.get(i) == p1 || m.get(i) == p2) continue;
             double d = distance(x[p3], y[p3], x[p2], y[p2], x[m.get(i)], y[m.get(i)]);
-
+            
             if (d <= 0) {
                 points.add(m.get(i));
-
-                if(furthest == 0) {
-                    furthest = d;
-                    next = m.get(i);
-                }
 
                 if (d < furthest) {
                     next = m.get(i);
@@ -205,9 +212,17 @@ public class Oblig5 {
 
 
         //lets the right recursive handle straight lines : ), i have noe idea what is wrong MonkaS
-        if(furthest == 0 ) {}
+        if(furthest == 0 ) {
+            points = findPointsBetween(p2, p3, points);
+            if (points.len == 0) {
+                return;
+            }
+            next = points.get(0);
+        }
+
+
+
         if (next != -1) {
-            //System.out.println(p3 + " " + p2  + points);
             sekvRek(p3, p2, next, points, koHyll);
             
 
@@ -215,6 +230,27 @@ public class Oblig5 {
         points = null;
 
 
+    }
+
+    public IntList findPointsBetween(int p1, int p2, IntList m) {
+        IntList points = new IntList(3);
+        int p1x = x[p1]; int p1y = y[p1];
+        int p2x = x[p2]; int p2y = y[p2];
+        
+        for (int i = 0; i < m.len; i++) {
+            int ix = x[m.get(i)]; int iy = y[m.get(i)];
+            
+            if(ix == p1x && ((iy < p1y && iy > p2y) || (iy > p1y && iy < p2y))) {
+                points.add(m.get(i));
+            }
+
+            if(iy == p1y && ((ix < p1x && ix > p2x) || (ix > p1x && ix < p2x))) {
+                points.add(m.get(i));
+            }
+
+
+        }
+        return points;
     }
 
     public static void main(String[] args) {
