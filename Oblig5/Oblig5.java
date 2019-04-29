@@ -15,7 +15,6 @@ public class Oblig5 {
         threads = 4;
         this.x = x;
         this.y = y;
-        sekvMetode();
 
     }
 
@@ -161,7 +160,13 @@ public class Oblig5 {
             double d = distance(x[p1], y[p1], x[p3], y[p3], x[m.get(i)], y[m.get(i)]);
 
             if (d <= 0) {
-                points.add(m.get(i));
+
+                if(d < 0) points.add(m.get(i));
+
+                else if(d == 0 && isBetween(p1,p3,m.get(i))) {
+                    points.add(m.get(i));
+                    if(next == -1) next = m.get(i);
+                }
 
                 if (d < furthest) {
                     next = m.get(i);
@@ -172,18 +177,16 @@ public class Oblig5 {
            
         }
 
-        
-        //we only found points on line, now we how to check if the given points are between p1-p3;
+        /* //we only found points on line, now we how to check if the given points are between p1-p3;
         if (furthest == 0) {
             points = findPointsBetween(p1, p3, points);
             if (points.len != 0) {
                 next = points.get(0);
 
             }
-        }
+        } */
 
         if (next != -1) {
-
             sekvRek(p1, p3, next, points, koHyll);
         }
 
@@ -199,7 +202,13 @@ public class Oblig5 {
             double d = distance(x[p3], y[p3], x[p2], y[p2], x[m.get(i)], y[m.get(i)]);
             
             if (d <= 0) {
-                points.add(m.get(i));
+
+                if(d < 0) points.add(m.get(i));
+
+                else if(d == 0 && isBetween(p3,p2,m.get(i))) {
+                    points.add(m.get(i));
+                    if(next == -1) next = m.get(i);
+                }
 
                 if (d < furthest) {
                     next = m.get(i);
@@ -211,7 +220,7 @@ public class Oblig5 {
         }
 
 
-        //lets the right recursive handle straight lines : ), i have noe idea what is wrong MonkaS
+        /* //lets the right recursive handle straight lines : ), i have noe idea what is wrong MonkaS
         if(furthest == 0 ) {
             points = findPointsBetween(p2, p3, points);
             if (points.len == 0) {
@@ -219,17 +228,34 @@ public class Oblig5 {
             }
             next = points.get(0);
         }
-
+        */
 
 
         if (next != -1) {
             sekvRek(p3, p2, next, points, koHyll);
-            
-
         }
         points = null;
 
 
+    }
+
+    public boolean isBetween(int p1, int p2,int i) {
+        int p1x = x[p1]; int p1y = y[p1];
+        int p2x = x[p2]; int p2y = y[p2];
+        int ix = x[i]; int iy = y[i];
+
+        if(p1 == 38 || p2 == 38) {
+            //System.out.printf("%d %d %d %b %b\n",p1,p2,i,ix == p1x && p1x < ix && ix < p2x || p1x > ix && ix > p2x,p1y < iy && iy < p2y || p1y > iy && iy > p2y);
+        }
+            
+        if(p1x < ix && ix < p2x || p1x > ix && ix > p2x) {
+            return true;
+        }
+
+        if(p1y < iy && iy < p2y || p1y > iy && iy > p2y) {
+            return true;
+        }
+        return false;
     }
 
     public IntList findPointsBetween(int p1, int p2, IntList m) {
@@ -257,13 +283,22 @@ public class Oblig5 {
 
         if(args.length < 1) {return;}
 
+        
+        
+
         int n = Integer.parseInt(args[0]);
         NPunkter17 p = new NPunkter17(n);
         int[] x = new int[n];
         int[] y = new int[n];
         p.fyllArrayer(x, y);
 
+
         Oblig5 task = new Oblig5(n, x, y);
+
+        System.out.println("dist is " + task.distance(12,12,6,18,9,15));
+
+        task.sekvMetode();
+
         //System.out.println(task.printPoints());
         // correctKohyllForced();
 
