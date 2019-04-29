@@ -25,9 +25,14 @@ public class Oblig4 {
         this.threads = threads;
         this.seed = seed;
         this.n = n;
+        a = new int[n];
+        paraA = new int[n];
         original = Oblig4Precode.generateArray(n, seed);
-        a = original.clone();
-        paraA = original.clone();
+        for (int i = 0; i < n; i++) {
+            a[i] = original[i];
+            paraA[i] = original[i];
+        }
+
         b = new int[n];
         paraB = new int[n];
 
