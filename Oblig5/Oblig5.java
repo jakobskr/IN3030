@@ -1,5 +1,7 @@
 
 import java.util.Arrays;
+import java.util.concurrent.CyclicBarrier;
+
 
 public class Oblig5 {
     int MIN_X = 1;
@@ -9,10 +11,12 @@ public class Oblig5 {
     int n;
     int threads;
     int[] x, y;
+    CyclicBarrier cb;
+    int test = 0;
 
     public Oblig5(int n, int[] x, int[] y) {
         this.n = n;
-        threads = 4;
+        threads = 6;
         this.x = x;
         this.y = y;
 
@@ -42,7 +46,8 @@ public class Oblig5 {
 
     public void sekvMetode() {
 
-        //System.out.println(distance(3, 4, 7, 8, 1, 1) + " "  + distance(7, 8, 3, 4, 1, 1));
+        // System.out.println(distance(3, 4, 7, 8, 1, 1) + " " + distance(7, 8, 3, 4, 1,
+        // 1));
         IntList koHyll = new IntList(15);
         IntList rightPoints = new IntList(4);
         IntList leftPoints = new IntList(4);
@@ -64,7 +69,7 @@ public class Oblig5 {
         int ar = y[maxPos] - y[minPos];
         int br = x[minPos] - x[maxPos];
         int cr = y[minPos] * x[maxPos] - y[maxPos] * x[minPos];
-        
+
         int al = y[minPos] - y[maxPos];
         int bl = x[maxPos] - x[minPos];
         int cl = y[maxPos] * x[minPos] - y[minPos] * x[maxPos];
@@ -73,7 +78,7 @@ public class Oblig5 {
             if (i == maxPos || i == minPos)
                 continue;
             double d = (double) ((ar * x[i] + br * y[i] + cr));
-            
+
             if (d <= 0) {
                 rightPoints.add(i);
 
@@ -82,7 +87,7 @@ public class Oblig5 {
                     furthestR = d;
                 }
             }
-                
+
             double dl = (double) ((al * x[i] + bl * y[i] + cl));
 
             if (dl <= 0) {
@@ -93,127 +98,54 @@ public class Oblig5 {
                     furthestL = dl;
                 }
             }
-            
-            
+
         }
 
         koHyll.add(maxPos);
-        if(nextRight != -1) {
+        if (nextRight != -1) {
             newRec(maxPos, minPos, nextRight, rightPoints, koHyll);
         }
-    
+
         koHyll.add(minPos);
 
-        if(nextLeft != -1) {
-            newRec(minPos,maxPos,nextLeft,leftPoints,koHyll);
+        if (nextLeft != -1) {
+            newRec(minPos, maxPos, nextLeft, leftPoints, koHyll);
         }
-        
+
         MAX_X = x[0];
         MIN_X = x[0];
         MAX_Y = y[0];
         MIN_Y = y[0];
 
         for (int i = 0; i < n; i++) {
-            if(x[i] < MIN_X) MIN_X = x[i];
-            if(x[i] > MAX_X) MAX_X = x[i];
-            if(y[i] < MIN_Y) MIN_Y = y[i];
-            if(y[i] > MAX_Y) MAX_Y = y[i];
+            if (x[i] < MIN_X)
+                MIN_X = x[i];
+            if (x[i] > MAX_X)
+                MAX_X = x[i];
+            if (y[i] < MIN_Y)
+                MIN_Y = y[i];
+            if (y[i] > MAX_Y)
+                MAX_Y = y[i];
 
         }
-        
-        System.out.println(koHyll);
 
-        if(n < 100000 ) {
+        System.out.println("sekv kohyll: "  + koHyll + " " + koHyll.len);
+
+        if (n < 100000) {
             new TegnUt(this, koHyll);
         }
+
+        koHyll = null;
+
+        //System.out.println("heckin' " + calls + " calls");
+    }
+
+    public void newRec(int p1, int p2, int p3, IntList m, IntList koHyll) {
         
-        System.out.println("heckin' " + calls + " calls");
-    }
-
-    public void sekvRek(int p1, int p2, int p3, IntList m, IntList koHyll) {
-        calls++;
-        //System.out.println(p1 + " " + p2 + " " + p3 +  " " +  m);
-       
-
-        //System.out.printf("rec: %d %d %d \n", p1, p2 , p3);
-        IntList points = new IntList(3);
-
-        //right side
-
-        int next = -1;
-        double furthest = 0.0;
-
-        for (int i = 0; i < m.len; i++) {
-            if (m.get(i) == p3 || m.get(i) == p1 || m.get(i) == p2) continue;
-            
-            double d = distance(x[p1], y[p1], x[p3], y[p3], x[m.get(i)], y[m.get(i)]);
-
-            if (d <= 0) {
-
-                if(d < 0) points.add(m.get(i));
-
-                else if(d == 0 && isBetween(p1,p3,m.get(i))) {
-                    points.add(m.get(i));
-                    if(next == -1) next = m.get(i);
-                }
-
-                if (d < furthest) {
-                    next = m.get(i);
-                    furthest = d;
-                }
-            }
-
-           
-        }
-
-        if (next != -1) {
-            sekvRek(p1, p3, next, points, koHyll);
-        }
-
-        points = new IntList(3);
-        koHyll.add(p3);
-
-        //left side
-        next = -1;
-        furthest = 0.0;
-        for (int i = 0; i < m.len; i++) {
-            
-            if (m.get(i) == p3 || m.get(i) == p1 || m.get(i) == p2) continue;
-            double d = distance(x[p3], y[p3], x[p2], y[p2], x[m.get(i)], y[m.get(i)]);
-            
-            if (d <= 0) {
-
-                if(d < 0) points.add(m.get(i));
-
-                else if(d == 0 && isBetween(p3,p2,m.get(i))) {
-                    points.add(m.get(i));
-                    if(next == -1) next = m.get(i);
-                }
-
-                if (d < furthest) {
-                    next = m.get(i);
-                    furthest = d;
-                }
-            }
-
-           
-        }
-
-
-        if (next != -1) {
-            sekvRek(p3, p2, next, points, koHyll);
-        }
-        points = null;
-
-
-    }
-
-    public void newRec(int p1, int p2,int p3, IntList m, IntList koHyll) {
-
         int ar = y[p1] - y[p3];
         int br = x[p3] - x[p1];
         int cr = y[p3] * x[p1] - y[p1] * x[p3];
-        
+
         int al = y[p3] - y[p2];
         int bl = x[p2] - x[p3];
         int cl = y[p2] * x[p3] - y[p3] * x[p2];
@@ -232,12 +164,14 @@ public class Oblig5 {
 
             double d = (double) ((ar * x[m.get(i)] + br * y[m.get(i)] + cr));
             if (d <= 0) {
-               
-                if(d < 0) rightPoints.add(m.get(i));
 
-                else if(d == 0 && isBetween(p1,p3,m.get(i))) {
+                if (d < 0)
                     rightPoints.add(m.get(i));
-                    if(nextRight == -1) nextRight = m.get(i);
+
+                else if (d == 0 && isBetween(p1, p3, m.get(i))) {
+                    rightPoints.add(m.get(i));
+                    if (nextRight == -1)
+                        nextRight = m.get(i);
                 }
 
                 if (d < furthestR) {
@@ -245,16 +179,18 @@ public class Oblig5 {
                     furthestR = d;
                 }
             }
-                
+
             double dl = (double) ((al * x[m.get(i)] + bl * y[m.get(i)] + cl));
-            
+
             if (dl <= 0) {
 
-                if(dl < 0) leftPoints.add(m.get(i));
-
-                else if(dl == 0 && isBetween(p3,p2,m.get(i))) {
+                if (dl < 0)
                     leftPoints.add(m.get(i));
-                    if(nextLeft == -1) nextLeft = m.get(i);
+
+                else if (dl == 0 && isBetween(p3, p2, m.get(i))) {
+                    leftPoints.add(m.get(i));
+                    if (nextLeft == -1)
+                        nextLeft = m.get(i);
                 }
 
                 if (dl < furthestL) {
@@ -264,44 +200,343 @@ public class Oblig5 {
             }
 
         }
-        
+
         if (nextRight != -1) {
             newRec(p1, p3, nextRight, rightPoints, koHyll);
         }
-    
-        koHyll.add(p3);      
-            
+
+        koHyll.add(p3);
+
         if (nextLeft != -1) {
             newRec(p3, p2, nextLeft, leftPoints, koHyll);
         }
 
     }
 
-    public boolean isBetween(int p1, int p2,int i) {
-        int p1x = x[p1]; int p1y = y[p1];
-        int p2x = x[p2]; int p2y = y[p2];
-        int ix = x[i]; int iy = y[i];
+    public boolean isBetween(int p1, int p2, int i) {
+        int p1x = x[p1];
+        int p1y = y[p1];
+        int p2x = x[p2];
+        int p2y = y[p2];
+        int ix = x[i];
+        int iy = y[i];
 
-        if(p1 == 38 || p2 == 38) {
-            //System.out.printf("%d %d %d %b %b\n",p1,p2,i,ix == p1x && p1x < ix && ix < p2x || p1x > ix && ix > p2x,p1y < iy && iy < p2y || p1y > iy && iy > p2y);
+        if (p1 == 38 || p2 == 38) {
+            // System.out.printf("%d %d %d %b %b\n",p1,p2,i,ix == p1x && p1x < ix && ix <
+            // p2x || p1x > ix && ix > p2x,p1y < iy && iy < p2y || p1y > iy && iy > p2y);
         }
-            
-        if(p1x < ix && ix < p2x || p1x > ix && ix > p2x) {
+
+        if (p1x < ix && ix < p2x || p1x > ix && ix > p2x) {
             return true;
         }
 
-        if(p1y < iy && iy < p2y || p1y > iy && iy > p2y) {
+        if (p1y < iy && iy < p2y || p1y > iy && iy > p2y) {
             return true;
         }
         return false;
     }
 
-    public static void main(String[] args) {
+    public void paraKohyll()  {
+        System.out.println("Here we heckin' go");
+        IntList koHyll = new IntList(15);
+        IntList leftKohyll = new IntList(3);
+        IntList rightKohyll = new IntList(3);
+        IntList localKohyll = new IntList(3);
 
-        if(args.length < 1) {return;}
+        int maxPos = 0;
+        int minPos = 0;
+        int nextLeft = -1;
+        int nextRight = -1;
 
-        
-        
+        Thread t1 = null;
+        Thread t2 = null;
+
+        for (int i = 1; i < n; i++) {
+            if (x[i] > x[maxPos])
+                maxPos = i;
+            if (x[i] < x[minPos])
+                minPos = i;
+        }
+
+        IntList rightPoints = new IntList(3);
+        IntList leftPoints = new IntList(3);
+        double furthestL = 0.1;
+        double furthestR = 0.1;
+        int ar = y[maxPos] - y[minPos];
+        int br = x[minPos] - x[maxPos];
+        int cr = y[minPos] * x[maxPos] - y[maxPos] * x[minPos];
+
+        int al = y[minPos] - y[maxPos];
+        int bl = x[maxPos] - x[minPos];
+        int cl = y[maxPos] * x[minPos] - y[minPos] * x[maxPos];
+
+        threads = 4;
+        int leftDepth = threads / 2;
+        int rightDepth = threads / 2 + threads % 2;
+
+        Worker2 leftThread = null; Worker2 rightThread = null;
+        for (int i = 0; i < n; i++) {
+            if (i == maxPos || i == minPos)
+                continue;
+            double d = (double) ((ar * x[i] + br * y[i] + cr));
+
+            if (d <= 0) {
+                rightPoints.add(i);
+
+                if (d < furthestR) {
+                    nextRight = i;
+                    furthestR = d;
+                }
+            }
+
+            double dl = (double) ((al * x[i] + bl * y[i] + cl));
+
+            if (dl <= 0) {
+                leftPoints.add(i);
+
+                if (dl < furthestL) {
+                    nextLeft = i;
+                    furthestL = dl;
+                }
+            }
+
+        }
+
+        rightKohyll.add(maxPos);
+        if (nextRight != -1) {
+
+            if (rightDepth > 0) {
+                rightThread = new Worker2(rightDepth - 1, maxPos, minPos ,nextRight, rightPoints);
+                t1 = new Thread(rightThread);
+                t1.start();
+            }
+
+            else {
+                newRec(maxPos, minPos, nextRight, rightPoints, rightKohyll);
+            }
+
+        }
+
+        leftKohyll.add(minPos);
+
+        if (nextLeft != -1) {
+            if (leftDepth > 0) {
+                leftThread = new Worker2(rightDepth - 1, minPos, maxPos, nextLeft, leftPoints);
+                t2 = new Thread(leftThread);
+                t2.start();
+            } 
+            
+            else {
+                newRec(minPos, maxPos, nextLeft, leftPoints, leftKohyll);
+            }
+        }
+
+        if((leftDepth == 0 && rightDepth == 0) || (t1 == null) && (t2 == null)) {
+
+            localKohyll.append(rightKohyll);
+            localKohyll.append(leftKohyll);
+        }
+
+        if(t1 != null || t2 != null) {
+            localKohyll.append(rightKohyll);
+
+            if(t1 != null) {
+                try {
+                    t1.join();
+                    localKohyll.append(rightThread.localKohyll);
+
+                } catch (Exception e) {
+                    //TODO: handle exception
+                }
+            }
+
+            localKohyll.append(leftKohyll);
+
+            if(t2 != null) {
+                try {
+                    //System.out.println("beep booop " + leftThread.localKohyll);
+                    t2.join();
+                    localKohyll.append(leftThread.localKohyll);
+                } catch (Exception e) {
+                    //TODO: handle exception
+                }
+            }
+
+        }
+
+        System.out.println("para kohyll: " + localKohyll + " " + localKohyll.len);
+        new TegnUt(this, localKohyll);
+
+    }
+
+    public class Worker2 implements Runnable {
+        IntList localKohyll = new IntList(4);
+        IntList leftList = new IntList(3);
+        IntList rightList = new IntList(3);
+        Worker2 leftThread, rightThread;
+        int leftDepth, rightDepth;
+        int p1, p2, p3;
+        IntList m;
+        Thread t1 = null; Thread t2 = null;
+        int id = 0;
+
+        public Worker2(int depth, int p1, int p2, int p3, IntList m) {
+            this.id = test++;
+            this.p1 = p1;
+            this.p2 = p2;
+            this.p3 = p3;
+            this.m = m;
+            leftDepth = depth / 2 ;
+            rightDepth = (depth / 2) + depth % 2;
+
+        }
+
+        public void run() {
+            //System.out.println("thread: " + id + " " + rightDepth + " " + leftDepth + " " + p1 + " " + p2 + " " + p3 + " " + m);
+            paraRec(p1, p2, p3 , m);
+        }
+
+        public void paraRec(int p1, int p2, int p3, IntList m) {
+            int ar = y[p1] - y[p3];
+            int br = x[p3] - x[p1];
+            int cr = y[p3] * x[p1] - y[p1] * x[p3];
+
+            int al = y[p3] - y[p2];
+            int bl = x[p2] - x[p3];
+            int cl = y[p2] * x[p3] - y[p3] * x[p2];
+
+            IntList rightPoints = new IntList(3);
+            IntList leftPoints = new IntList(3);
+            IntList rightKohyll = new IntList(3);
+            IntList leftKohyll = new IntList(3);
+            int nextLeft = -1;
+            int nextRight = -1;
+            double furthestR = 0;
+            double furthestL = 0;
+
+            for (int i = 0; i < m.len; i++) {
+                if (m.get(i) == p1 || m.get(i) == p2 || m.get(i) == p3) {
+                    continue;
+                }
+
+                double d = (double) ((ar * x[m.get(i)] + br * y[m.get(i)] + cr));
+                if (d <= 0) {
+
+                    if (d < 0)
+                        rightPoints.add(m.get(i));
+
+                    else if (d == 0 && isBetween(p1, p3, m.get(i))) {
+                        rightPoints.add(m.get(i));
+                        if (nextRight == -1)
+                            nextRight = m.get(i);
+                    }
+
+                    if (d < furthestR) {
+                        nextRight = m.get(i);
+                        furthestR = d;
+                    }
+                }
+
+                double dl = (double) ((al * x[m.get(i)] + bl * y[m.get(i)] + cl));
+
+                if (dl <= 0) {
+
+                    if (dl < 0)
+                        leftPoints.add(m.get(i));
+
+                    else if (dl == 0 && isBetween(p3, p2, m.get(i))) {
+                        leftPoints.add(m.get(i));
+                        if (nextLeft == -1)
+                            nextLeft = m.get(i);
+                    }
+
+                    if (dl < furthestL) {
+                        nextLeft = m.get(i);
+                        furthestL = dl;
+                    }
+                }
+
+            }
+
+            if (nextRight != -1) {
+                if(rightDepth > 0 ) {
+                    rightThread = new Worker2(rightDepth - 1, p1, p3, nextRight, rightPoints); 
+                    t1 = new Thread(rightThread);
+                    t1.start();
+                } 
+
+                else {
+                    newRec(p1, p3, nextRight, rightPoints, rightKohyll);
+                }
+            }
+
+            leftKohyll.add(p3);
+
+            if (nextLeft != -1) {
+                if (leftDepth > 0 ) {
+                    leftThread = new Worker2(leftDepth - 1, p3, p2, nextLeft, leftPoints);
+                    t2 = new Thread(leftThread);
+                    t2.start();
+                }
+
+                else {
+                    newRec(p3, p2, nextLeft, leftPoints, leftKohyll);
+                    //System.out.println("id " + id + " " + nextLeft + " " + leftKohyll);
+                }
+            }
+
+            if((leftDepth == 0 && rightDepth == 0) || (t1 == null) && (t2 == null)) {
+                rightKohyll.append(leftKohyll);
+                localKohyll.append(rightKohyll);
+
+            }
+
+
+
+            else {
+                if(t1 != null || t2 != null) {
+
+                    localKohyll.append(rightKohyll);
+
+
+                    if(t1 != null) {
+
+                        try {
+                            t1.join();
+                            localKohyll.append(rightThread.localKohyll);
+                            
+                        } catch (Exception e) {
+                            //TODO: handle exception
+                        }
+                    }
+
+                    localKohyll.append(leftKohyll);
+
+
+                    if(t2 != null) {
+                        try {
+                            t2.join();
+                            localKohyll.append(leftThread.localKohyll);
+                        } catch (Exception e) {
+                            //TODO: handle exception
+                        }
+                    }
+
+                    
+                }
+            }
+
+            //System.out.println("Thread localKohyll " + id + " " + localKohyll);
+
+        }
+
+    }
+
+    public static void main(String[] args)  {
+
+        if (args.length < 1) {
+            return;
+        }
 
         int n = Integer.parseInt(args[0]);
         NPunkter17 p = new NPunkter17(n);
@@ -309,14 +544,14 @@ public class Oblig5 {
         int[] y = new int[n];
         p.fyllArrayer(x, y);
 
-
         Oblig5 task = new Oblig5(n, x, y);
 
-        System.out.println("dist is " + task.distance(12,12,6,18,9,15));
+        System.out.println("dist is " + task.distance(12, 12, 6, 18, 9, 15));
 
         task.sekvMetode();
+        task.paraKohyll();
 
-        //System.out.println(task.printPoints());
+        // System.out.println(task.printPoints());
         // correctKohyllForced();
 
     }
