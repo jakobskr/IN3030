@@ -2,7 +2,6 @@
 import java.util.Arrays;
 import java.util.concurrent.CyclicBarrier;
 
-
 public class Oblig5 {
     int MIN_X = 1;
     int MAX_X = 100;
@@ -11,12 +10,19 @@ public class Oblig5 {
     int n;
     int threads;
     int[] x, y;
+    IntList[][] dataMax;
+    IntList[][] dataMin;
+    int[] arrMin;
+    int[] arrMax;
+    int paraMin;
+    int paraMax;
+
     CyclicBarrier cb;
     int test = 0;
 
-    public Oblig5(int n, int[] x, int[] y) {
+    public Oblig5(int n, int[] x, int[] y, int threads) {
         this.n = n;
-        threads = 6;
+        this.threads = threads;
         this.x = x;
         this.y = y;
 
@@ -34,20 +40,12 @@ public class Oblig5 {
 
     // this is a bad way of doing things, since i calculate the line formel to many
     // times xd. has to change at some point!!!!!
-    public double distance(int x1, int y1, int x2, int y2, int px, int py) {
-        int a = y1 - y2;
-        int b = x2 - x1;
-        int c = y2 * x1 - y1 * x2;
 
-        double d = (double) ((a * px + b * py + c) / (double) Math.sqrt(a * a + b * b));
-
-        return d;
-    }
-
-    public void sekvMetode() {
+    public double sekvMetode() {
 
         // System.out.println(distance(3, 4, 7, 8, 1, 1) + " " + distance(7, 8, 3, 4, 1,
         // 1));
+        long t1 = System.nanoTime();
         IntList koHyll = new IntList(15);
         IntList rightPoints = new IntList(4);
         IntList leftPoints = new IntList(4);
@@ -112,6 +110,8 @@ public class Oblig5 {
             newRec(minPos, maxPos, nextLeft, leftPoints, koHyll);
         }
 
+        long time2 = System.nanoTime();
+
         MAX_X = x[0];
         MIN_X = x[0];
         MAX_Y = y[0];
@@ -129,19 +129,22 @@ public class Oblig5 {
 
         }
 
-        System.out.println("sekv kohyll: "  + koHyll + " " + koHyll.len);
-
-        if (n < 100000) {
+        if (n < 500) {
+            System.out.println("sekv kohyll: " + koHyll + " " + koHyll.len);
             new TegnUt(this, koHyll);
         }
 
-        koHyll = null;
+        else {
+            System.out.println("sekv len: " + koHyll.len);
+        }
 
-        //System.out.println("heckin' " + calls + " calls");
+        koHyll = null;
+        return (double) (time2 - t1) / 1000000.0;
+
     }
 
     public void newRec(int p1, int p2, int p3, IntList m, IntList koHyll) {
-        
+
         int ar = y[p1] - y[p3];
         int br = x[p3] - x[p1];
         int cr = y[p3] * x[p1] - y[p1] * x[p3];
@@ -221,11 +224,6 @@ public class Oblig5 {
         int ix = x[i];
         int iy = y[i];
 
-        if (p1 == 38 || p2 == 38) {
-            // System.out.printf("%d %d %d %b %b\n",p1,p2,i,ix == p1x && p1x < ix && ix <
-            // p2x || p1x > ix && ix > p2x,p1y < iy && iy < p2y || p1y > iy && iy > p2y);
-        }
-
         if (p1x < ix && ix < p2x || p1x > ix && ix > p2x) {
             return true;
         }
@@ -236,12 +234,20 @@ public class Oblig5 {
         return false;
     }
 
-    public void paraKohyll()  {
-        System.out.println("Here we heckin' go");
+    public double paraKohyll() {
+
+        // System.out.println("Here we heckin' go");
+        long time1 = System.nanoTime();
         IntList koHyll = new IntList(15);
         IntList leftKohyll = new IntList(3);
         IntList rightKohyll = new IntList(3);
         IntList localKohyll = new IntList(3);
+        cb = new CyclicBarrier(threads + 1);
+
+        dataMin = new IntList[threads][];
+        dataMax = new IntList[threads][];
+        arrMax = new int[threads];
+        arrMin = new int[threads];
 
         int maxPos = 0;
         int minPos = 0;
@@ -251,12 +257,28 @@ public class Oblig5 {
         Thread t1 = null;
         Thread t2 = null;
 
-        for (int i = 1; i < n; i++) {
-            if (x[i] > x[maxPos])
-                maxPos = i;
-            if (x[i] < x[minPos])
-                minPos = i;
+        for (int i = 0; i < threads; i++) {
+            new Thread(new Worker1(i)).start();
         }
+
+        try {
+            cb.await();
+        } catch (Exception e) {
+            // TODO: handle exception
+        }
+
+        paraMin = arrMin[0];
+        paraMax = arrMax[0];
+
+        for (int i = 0; i < threads; i++) {
+            if (x[arrMax[i]] > x[paraMax])
+                paraMax = arrMax[i];
+            if (x[arrMin[i]] < x[paraMin])
+                paraMin = arrMin[i];
+        }
+
+        maxPos = paraMax;
+        minPos = paraMin;
 
         IntList rightPoints = new IntList(3);
         IntList leftPoints = new IntList(3);
@@ -270,11 +292,12 @@ public class Oblig5 {
         int bl = x[maxPos] - x[minPos];
         int cl = y[maxPos] * x[minPos] - y[minPos] * x[maxPos];
 
-        threads = 4;
         int leftDepth = threads / 2;
         int rightDepth = threads / 2 + threads % 2;
 
-        Worker2 leftThread = null; Worker2 rightThread = null;
+        Worker2 leftThread = null;
+        Worker2 rightThread = null;
+
         for (int i = 0; i < n; i++) {
             if (i == maxPos || i == minPos)
                 continue;
@@ -306,7 +329,7 @@ public class Oblig5 {
         if (nextRight != -1) {
 
             if (rightDepth > 0) {
-                rightThread = new Worker2(rightDepth - 1, maxPos, minPos ,nextRight, rightPoints);
+                rightThread = new Worker2(rightDepth - 1, maxPos, minPos, nextRight, rightPoints);
                 t1 = new Thread(rightThread);
                 t1.start();
             }
@@ -324,48 +347,94 @@ public class Oblig5 {
                 leftThread = new Worker2(rightDepth - 1, minPos, maxPos, nextLeft, leftPoints);
                 t2 = new Thread(leftThread);
                 t2.start();
-            } 
-            
+            }
+
             else {
                 newRec(minPos, maxPos, nextLeft, leftPoints, leftKohyll);
             }
         }
 
-        if((leftDepth == 0 && rightDepth == 0) || (t1 == null) && (t2 == null)) {
+        localKohyll.append(rightKohyll);
 
-            localKohyll.append(rightKohyll);
-            localKohyll.append(leftKohyll);
+        if (t1 != null) {
+            try {
+                t1.join();
+                localKohyll.append(rightThread.localKohyll);
+
+            } catch (Exception e) {
+                // TODO: handle exception
+            }
         }
 
-        if(t1 != null || t2 != null) {
-            localKohyll.append(rightKohyll);
+        localKohyll.append(leftKohyll);
 
-            if(t1 != null) {
-                try {
-                    t1.join();
-                    localKohyll.append(rightThread.localKohyll);
-
-                } catch (Exception e) {
-                    //TODO: handle exception
-                }
+        if (t2 != null) {
+            try {
+                // System.out.println("beep booop " + leftThread.localKohyll);
+                t2.join();
+                localKohyll.append(leftThread.localKohyll);
+            } catch (Exception e) {
+                // TODO: handle exception
             }
+        }
 
-            localKohyll.append(leftKohyll);
+        double ret = (System.nanoTime() - time1) / 1000000.0;
+        //System.out.println("para used: " + (System.nanoTime() - time1) / 1000000.0 + " ms");
 
-            if(t2 != null) {
-                try {
-                    //System.out.println("beep booop " + leftThread.localKohyll);
-                    t2.join();
-                    localKohyll.append(leftThread.localKohyll);
-                } catch (Exception e) {
-                    //TODO: handle exception
-                }
-            }
+        if (n < 500) {
+            System.out.println("para kohyll: " + localKohyll + " " + localKohyll.len);
+            new TegnUt(this, localKohyll);
 
         }
 
-        System.out.println("para kohyll: " + localKohyll + " " + localKohyll.len);
-        new TegnUt(this, localKohyll);
+        else {
+            System.out.println("lenght para: " + localKohyll.len);
+        }
+
+        return ret;
+
+    }
+
+    public class Worker1 implements Runnable {
+        int id;
+        int start;
+        int end;
+
+        public Worker1(int id) {
+            this.id = id;
+            start = (n / threads) * id;
+            if (id == threads - 1) {
+                end = n;
+            }
+
+            else {
+                end = start + n / threads;
+            }
+
+            // System.out.println(id + " " + start + " " + end);
+        }
+
+        public void run() {
+            int maxPos = start;
+            int minPos = start;
+
+            for (int i = start; i < end; i++) {
+                if (x[i] > x[maxPos])
+                    maxPos = i;
+                if (x[i] < x[minPos])
+                    minPos = i;
+            }
+
+            arrMax[id] = maxPos;
+            arrMin[id] = minPos;
+
+            try {
+                cb.await();
+            } catch (Exception e) {
+                // TODO: handle exception
+            }
+
+        }
 
     }
 
@@ -377,7 +446,8 @@ public class Oblig5 {
         int leftDepth, rightDepth;
         int p1, p2, p3;
         IntList m;
-        Thread t1 = null; Thread t2 = null;
+        Thread t1 = null;
+        Thread t2 = null;
         int id = 0;
 
         public Worker2(int depth, int p1, int p2, int p3, IntList m) {
@@ -386,14 +456,15 @@ public class Oblig5 {
             this.p2 = p2;
             this.p3 = p3;
             this.m = m;
-            leftDepth = depth / 2 ;
+            leftDepth = depth / 2;
             rightDepth = (depth / 2) + depth % 2;
 
         }
 
         public void run() {
-            //System.out.println("thread: " + id + " " + rightDepth + " " + leftDepth + " " + p1 + " " + p2 + " " + p3 + " " + m);
-            paraRec(p1, p2, p3 , m);
+            // System.out.println("thread: " + id + " " + rightDepth + " " + leftDepth + " "
+            // + p1 + " " + p2 + " " + p3 + " " + m);
+            paraRec(p1, p2, p3, m);
         }
 
         public void paraRec(int p1, int p2, int p3, IntList m) {
@@ -459,11 +530,11 @@ public class Oblig5 {
             }
 
             if (nextRight != -1) {
-                if(rightDepth > 0 ) {
-                    rightThread = new Worker2(rightDepth - 1, p1, p3, nextRight, rightPoints); 
+                if (rightDepth > 0) {
+                    rightThread = new Worker2(rightDepth - 1, p1, p3, nextRight, rightPoints);
                     t1 = new Thread(rightThread);
                     t1.start();
-                } 
+                }
 
                 else {
                     newRec(p1, p3, nextRight, rightPoints, rightKohyll);
@@ -473,7 +544,7 @@ public class Oblig5 {
             leftKohyll.add(p3);
 
             if (nextLeft != -1) {
-                if (leftDepth > 0 ) {
+                if (leftDepth > 0) {
                     leftThread = new Worker2(leftDepth - 1, p3, p2, nextLeft, leftPoints);
                     t2 = new Thread(leftThread);
                     t2.start();
@@ -481,100 +552,63 @@ public class Oblig5 {
 
                 else {
                     newRec(p3, p2, nextLeft, leftPoints, leftKohyll);
-                    //System.out.println("id " + id + " " + nextLeft + " " + leftKohyll);
+                    // System.out.println("id " + id + " " + nextLeft + " " + leftKohyll);
                 }
             }
 
-            if((leftDepth == 0 && rightDepth == 0) || (t1 == null) && (t2 == null)) {
-                rightKohyll.append(leftKohyll);
-                localKohyll.append(rightKohyll);
+            localKohyll.append(rightKohyll);
 
-            }
+            if (t1 != null) {
 
+                try {
+                    t1.join();
+                    localKohyll.append(rightThread.localKohyll);
 
-
-            else {
-                if(t1 != null || t2 != null) {
-
-                    localKohyll.append(rightKohyll);
-
-
-                    if(t1 != null) {
-
-                        try {
-                            t1.join();
-                            localKohyll.append(rightThread.localKohyll);
-                            
-                        } catch (Exception e) {
-                            //TODO: handle exception
-                        }
-                    }
-
-                    localKohyll.append(leftKohyll);
-
-
-                    if(t2 != null) {
-                        try {
-                            t2.join();
-                            localKohyll.append(leftThread.localKohyll);
-                        } catch (Exception e) {
-                            //TODO: handle exception
-                        }
-                    }
-
-                    
+                } catch (Exception e) {
+                    // TODO: handle exception
                 }
             }
 
-            //System.out.println("Thread localKohyll " + id + " " + localKohyll);
+            localKohyll.append(leftKohyll);
+
+            if (t2 != null) {
+                try {
+                    t2.join();
+                    localKohyll.append(leftThread.localKohyll);
+                } catch (Exception e) {
+                    // TODO: handle exception
+                }
+            }
 
         }
 
     }
 
-    public static void main(String[] args)  {
+    public static void main(String[] args) {
 
-        if (args.length < 1) {
+        if (args.length < 2) {
             return;
         }
 
         int n = Integer.parseInt(args[0]);
+        int threads = Integer.parseInt(args[1]);
         NPunkter17 p = new NPunkter17(n);
         int[] x = new int[n];
         int[] y = new int[n];
         p.fyllArrayer(x, y);
 
-        Oblig5 task = new Oblig5(n, x, y);
+        Oblig5 task = new Oblig5(n, x, y, threads);
+        int runs = 7;
+        double[] para = new double[runs];
+        double[] sekv = new double[runs];;
 
-        System.out.println("dist is " + task.distance(12, 12, 6, 18, 9, 15));
+        for (int i = 0; i < runs; i++) {
+            sekv[i] = task.sekvMetode();
+            para[i] = task.paraKohyll();
+        }
 
-        task.sekvMetode();
-        task.paraKohyll();
+        Arrays.sort(para); Arrays.sort(sekv);
 
-        // System.out.println(task.printPoints());
-        // correctKohyllForced();
-
-    }
-
-    public static void correctKohyllForced() {
-
-        int n = 15;
-        NPunkter17 p = new NPunkter17(n);
-        int[] x = new int[n];
-        int[] y = new int[n];
-        p.fyllArrayer(x, y);
-
-        Oblig5 task = new Oblig5(n, x, y);
-        System.out.println(task.printPoints());
-        task.MIN_X = 0;
-        task.MAX_X = 10;
-        task.MIN_Y = 0;
-        task.MAX_Y = 10;
-
-        IntList ko = new IntList(7);
-
-        ko.add(6);
-
-        TegnUt tu = new TegnUt(task, ko);
+        System.out.printf("Time for finding Kohyll of %d points using %d threads\nsekvTime: %.2fms paraTime: %.2fms speedup: %.4f\n", n, threads ,sekv[runs/2], para[runs/2], (double) sekv[runs/2] / para[runs/2] ); 
     }
 }
