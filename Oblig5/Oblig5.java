@@ -3,6 +3,7 @@ import java.util.Arrays;
 import java.util.concurrent.CyclicBarrier;
 
 public class Oblig5 {
+    IntList sekList, paraList;
     int MIN_X = 1;
     int MAX_X = 100;
     int MIN_Y = 1, MAX_Y = 100;
@@ -10,10 +11,11 @@ public class Oblig5 {
     int n;
     int threads;
     int[] x, y;
-    IntList[][] dataMax;
-    IntList[][] dataMin;
+    IntList[][] paraPoints;
+    int[][] paraFurthest;
     int[] arrMin;
     int[] arrMax;
+    double[][] paraDistance;
     int paraMin;
     int paraMax;
 
@@ -138,7 +140,8 @@ public class Oblig5 {
             System.out.println("sekv len: " + koHyll.len);
         }
 
-        koHyll = null;
+        sekList = koHyll;
+
         return (double) (time2 - t1) / 1000000.0;
 
     }
@@ -214,6 +217,7 @@ public class Oblig5 {
             newRec(p3, p2, nextLeft, leftPoints, koHyll);
         }
 
+
     }
 
     public boolean isBetween(int p1, int p2, int i) {
@@ -234,25 +238,29 @@ public class Oblig5 {
         return false;
     }
 
-    public double paraKohyll() {
 
+
+
+    
+
+    public double paraKohyll() {
+        
         // System.out.println("Here we heckin' go");
         long time1 = System.nanoTime();
-        IntList koHyll = new IntList(15);
+        //IntList koHyll = new IntList(15);
         IntList leftKohyll = new IntList(3);
         IntList rightKohyll = new IntList(3);
         IntList localKohyll = new IntList(3);
         cb = new CyclicBarrier(threads + 1);
 
-        dataMin = new IntList[threads][];
-        dataMax = new IntList[threads][];
+        paraPoints = new IntList[threads][];
+        paraFurthest = new int[threads][];
+        paraDistance = new double[threads][];
         arrMax = new int[threads];
         arrMin = new int[threads];
 
         int maxPos = 0;
         int minPos = 0;
-        int nextLeft = -1;
-        int nextRight = -1;
 
         Thread t1 = null;
         Thread t2 = null;
@@ -270,6 +278,10 @@ public class Oblig5 {
         paraMin = arrMin[0];
         paraMax = arrMax[0];
 
+        IntList rightPoints = new IntList(10);
+        IntList leftPoints = new IntList(10);
+
+
         for (int i = 0; i < threads; i++) {
             if (x[arrMax[i]] > x[paraMax])
                 paraMax = arrMax[i];
@@ -280,52 +292,49 @@ public class Oblig5 {
         maxPos = paraMax;
         minPos = paraMin;
 
-        IntList rightPoints = new IntList(3);
-        IntList leftPoints = new IntList(3);
-        double furthestL = 0.1;
-        double furthestR = 0.1;
-        int ar = y[maxPos] - y[minPos];
-        int br = x[minPos] - x[maxPos];
-        int cr = y[minPos] * x[maxPos] - y[maxPos] * x[minPos];
+        try {
+            cb.await();
+            cb.await();
+        } catch (Exception e) {
+            // TODO: handle exception
+        }
 
-        int al = y[minPos] - y[maxPos];
-        int bl = x[maxPos] - x[minPos];
-        int cl = y[maxPos] * x[minPos] - y[minPos] * x[maxPos];
+        int nextRight = paraFurthest[0][0];
+        int nextLeft = paraFurthest[0][1];
+        double dr = paraDistance[0][0];
+        double dl = paraDistance[0][1];
 
-        int leftDepth = threads / 2;
-        int rightDepth = threads / 2 + threads % 2;
 
-        Worker2 leftThread = null;
-        Worker2 rightThread = null;
+        for (int i = 0; i < threads; i++) {
+            rightPoints.append(paraPoints[i][0]);
+            leftPoints.append(paraPoints[i][1]);
+            if (paraFurthest[i][0] != -1) {
 
-        for (int i = 0; i < n; i++) {
-            if (i == maxPos || i == minPos)
-                continue;
-            double d = (double) ((ar * x[i] + br * y[i] + cr));
-
-            if (d <= 0) {
-                rightPoints.add(i);
-
-                if (d < furthestR) {
-                    nextRight = i;
-                    furthestR = d;
+                if (paraDistance[i][0] < dr) {
+                    nextRight = paraFurthest[i][0];
+                    dr = paraDistance[i][0];
                 }
             }
 
-            double dl = (double) ((al * x[i] + bl * y[i] + cl));
+            if (paraFurthest[i][1] != -1) {
 
-            if (dl <= 0) {
-                leftPoints.add(i);
-
-                if (dl < furthestL) {
-                    nextLeft = i;
-                    furthestL = dl;
+                if (paraDistance[i][1] < dl) {
+                    nextLeft = paraFurthest[i][1];
+                    dl = paraDistance[i][1];
                 }
             }
-
         }
 
         rightKohyll.add(maxPos);
+
+        Worker2 rightThread = null;
+        Worker2 leftThread = null;
+        int rightDepth = threads / 2 + threads % 2;
+        int leftDepth = threads / 2;
+        
+
+       
+
         if (nextRight != -1) {
 
             if (rightDepth > 0) {
@@ -379,8 +388,10 @@ public class Oblig5 {
         }
 
         double ret = (System.nanoTime() - time1) / 1000000.0;
-        //System.out.println("para used: " + (System.nanoTime() - time1) / 1000000.0 + " ms");
+        // System.out.println("para used: " + (System.nanoTime() - time1) / 1000000.0 +
+        // " ms");
 
+        paraList = localKohyll;
         if (n < 500) {
             System.out.println("para kohyll: " + localKohyll + " " + localKohyll.len);
             new TegnUt(this, localKohyll);
@@ -411,7 +422,6 @@ public class Oblig5 {
                 end = start + n / threads;
             }
 
-            // System.out.println(id + " " + start + " " + end);
         }
 
         public void run() {
@@ -434,7 +444,82 @@ public class Oblig5 {
                 // TODO: handle exception
             }
 
-        }
+
+
+            try {
+                cb.await();
+            } catch (Exception e) {
+                // TODO: handle exception
+            }
+
+
+            //System.out.println(id + " " + paraMax + " " + paraMin +  " help ");
+
+            maxPos = paraMax;
+            minPos = paraMin;
+
+            //0 is right 1 is left;
+            IntList[] points = new IntList[2];
+            int[] furthestPoints = new int[2];
+            double[] distance = new double[2];
+
+            IntList rightPoints = new IntList(3);
+            IntList leftPoints = new IntList(3);
+            int nextRight = -1;
+            int nextLeft = -1;
+            double furthestL = 0;
+            double furthestR = 0;
+            int ar = y[maxPos] - y[minPos];
+            int br = x[minPos] - x[maxPos];
+            int cr = y[minPos] * x[maxPos] - y[maxPos] * x[minPos];
+
+            int al = y[minPos] - y[maxPos];
+            int bl = x[maxPos] - x[minPos];
+            int cl = y[maxPos] * x[minPos] - y[minPos] * x[maxPos];
+
+            for (int i = start; i < end; i++) {
+                if (i == maxPos || i == minPos)
+                    continue;
+                double d = (double) ((ar * x[i] + br * y[i] + cr));
+
+                if (d <= 0) {
+                    rightPoints.add(i);
+
+                    if (d < furthestR) {
+                        nextRight = i;
+                        furthestR = d;
+                    }
+                }
+
+                double dl = (double) ((al * x[i] + bl * y[i] + cl));
+
+                if (dl <= 0) {
+                    leftPoints.add(i);
+
+                    if (dl < furthestL) {
+                        nextLeft = i;
+                        furthestL = dl;
+                    }
+                }
+
+            }
+
+            distance[0] = furthestR;
+            distance[1] = furthestL;
+            points[0] = rightPoints;
+            points[1] = leftPoints;
+            furthestPoints[0] = nextRight;
+            furthestPoints[1] = nextLeft;
+            paraDistance[id] = distance;
+            paraFurthest[id] = furthestPoints;
+            paraPoints[id] = points;
+            
+            try {
+                cb.await();
+            } catch (Exception e) {
+                //TODO: handle exception
+            }
+        }//ends run
 
     }
 
@@ -600,15 +685,30 @@ public class Oblig5 {
         Oblig5 task = new Oblig5(n, x, y, threads);
         int runs = 7;
         double[] para = new double[runs];
-        double[] sekv = new double[runs];;
+        double[] sekv = new double[runs];
+
 
         for (int i = 0; i < runs; i++) {
             sekv[i] = task.sekvMetode();
             para[i] = task.paraKohyll();
         }
 
-        Arrays.sort(para); Arrays.sort(sekv);
+        Arrays.sort(para);
+        Arrays.sort(sekv);
 
-        System.out.printf("Time for finding Kohyll of %d points using %d threads\nsekvTime: %.2fms paraTime: %.2fms speedup: %.4f\n", n, threads ,sekv[runs/2], para[runs/2], (double) sekv[runs/2] / para[runs/2] ); 
+        System.out.println("same points in kohyll: " + same(task.paraList,task.sekList));
+         System.out.printf(
+                "Time for finding Kohyll of %d points using %d threads:\nsekvTime: %.2fms paraTime: %.2fms speedup: %.4f\n",
+                n, threads, sekv[runs / 2], para[runs / 2], (double) sekv[runs / 2] / para[runs / 2]);
+    }
+
+    public static boolean same(IntList a, IntList b) {
+        if (a.len != b.len) {return false;}
+
+        for (int i = 0; i < a.len; i++) {
+            if(a.get(i) != b.get(i)) return false;
+        }
+
+        return true;
     }
 }
